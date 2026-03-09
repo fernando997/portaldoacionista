@@ -166,15 +166,13 @@ export default function OnboardingPage() {
 
       // Enviar dados para o Bubble e registrar log
       const payload = {
-        pedido: pedidoId,
-        cnpj: updatedData.cnpj,
-        certificado: updatedData.certificado_digital_url,
-        senha: updatedData.senha_certificado,
-        cnh: updatedData.cnh_url,
-        procuracao: updatedData.procuracao_url,
+        'CNPJ': updatedData.cnpj,
+        'Certificado Digital': updatedData.certificado_digital_url,
+        'Senha do Certificado': updatedData.senha_certificado,
+        'CNH': updatedData.cnh_url,
       };
       try {
-        const apiRes = await fetch('https://modocorreapp.com.br/api/1.1/wf/pool_envioonboarding', {
+        const apiRes = await fetch('https://modocorreapp.com.br/version-test/api/1.1/wf/pool-receberonboarding', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
