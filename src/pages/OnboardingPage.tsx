@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import {
   Loader2, Upload, CheckCircle2, FileText, AlertCircle,
-  ShieldCheck, IdCard, FileCheck, ChevronRight, ChevronLeft, Send,
+  ShieldCheck, IdCard, FileCheck, ChevronRight, ChevronLeft, Send, Eye, EyeOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import logo from '@/assets/logo.png';
@@ -35,6 +35,7 @@ export default function OnboardingPage() {
 
   const [cnpj, setCnpj] = useState('');
   const [senhaCertificado, setSenhaCertificado] = useState('');
+  const [showSenha, setShowSenha] = useState(false);
   const [certificadoFile, setCertificadoFile] = useState<File | null>(null);
   const [cnhFile, setCnhFile] = useState<File | null>(null);
   const [procuracaoFile, setProcuracaoFile] = useState<File | null>(null);
@@ -375,13 +376,22 @@ export default function OnboardingPage() {
                 />
                 <div className="space-y-2">
                   <Label className="font-semibold text-sm">Senha do Certificado</Label>
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                    value={senhaCertificado}
-                    onChange={(e) => setSenhaCertificado(e.target.value)}
-                    className="h-12 text-base"
-                  />
+                  <div className="relative">
+                    <Input
+                      type={showSenha ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={senhaCertificado}
+                      onChange={(e) => setSenhaCertificado(e.target.value)}
+                      className="h-12 text-base pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSenha(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showSenha ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
