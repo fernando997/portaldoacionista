@@ -1,0 +1,181 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 97%;
+    --foreground: 220 60% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 60% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 60% 15%;
+
+    --primary: 220 60% 18%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 210 14% 96%;
+    --secondary-foreground: 220 60% 15%;
+
+    --muted: 210 14% 96%;
+    --muted-foreground: 215 10% 46%;
+
+    --accent: 135 55% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 13% 91%;
+    --input: 210 13% 91%;
+    --ring: 135 55% 42%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 220 60% 12%;
+    --sidebar-foreground: 210 30% 88%;
+    --sidebar-primary: 135 55% 48%;
+    --sidebar-primary-foreground: 220 60% 12%;
+    --sidebar-accent: 220 50% 20%;
+    --sidebar-accent-foreground: 210 30% 96%;
+    --sidebar-border: 220 45% 22%;
+    --sidebar-ring: 135 55% 48%;
+
+    --success: 135 55% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 210 80% 52%;
+    --info-foreground: 0 0% 100%;
+
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'Montserrat', sans-serif;
+
+    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
+    --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+    --shadow-elevated: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  }
+
+  .dark {
+    --background: 220 60% 6%;
+    --foreground: 210 30% 91%;
+    --card: 220 60% 10%;
+    --card-foreground: 210 30% 91%;
+    --popover: 220 60% 10%;
+    --popover-foreground: 210 30% 91%;
+    --primary: 135 55% 48%;
+    --primary-foreground: 220 60% 12%;
+    --secondary: 220 30% 16%;
+    --secondary-foreground: 210 30% 91%;
+    --muted: 220 30% 14%;
+    --muted-foreground: 215 20% 55%;
+    --accent: 135 55% 48%;
+    --accent-foreground: 220 60% 12%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 30% 18%;
+    --input: 220 30% 18%;
+    --ring: 135 55% 48%;
+    --sidebar-background: 220 60% 6%;
+    --sidebar-foreground: 210 30% 85%;
+    --sidebar-primary: 135 55% 48%;
+    --sidebar-primary-foreground: 220 60% 12%;
+    --sidebar-accent: 220 45% 12%;
+    --sidebar-accent-foreground: 210 30% 91%;
+    --sidebar-border: 220 30% 14%;
+    --sidebar-ring: 135 55% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer components {
+  .stat-card {
+    @apply bg-card rounded-xl border p-5 transition-all duration-300 min-w-0;
+    box-shadow: var(--shadow-card);
+  }
+  .stat-card:hover {
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-1px);
+  }
+
+  .stat-value {
+    @apply text-lg sm:text-xl font-bold tracking-tight text-foreground leading-snug;
+    font-family: var(--font-body);
+    font-weight: 700;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .stat-label {
+    @apply text-[11px] font-semibold text-muted-foreground uppercase tracking-wider leading-tight;
+  }
+
+  .section-title {
+    @apply text-2xl font-semibold text-foreground mb-6;
+    font-family: var(--font-display);
+  }
+
+  .page-container {
+    @apply p-6 md:p-8 lg:p-10 max-w-7xl mx-auto space-y-8;
+  }
+
+  .badge-status-active {
+    @apply bg-emerald-50 text-emerald-700 border-emerald-200;
+  }
+  .badge-status-maintenance {
+    @apply bg-amber-50 text-amber-700 border-amber-200;
+  }
+  .badge-status-inactive {
+    @apply bg-red-50 text-red-700 border-red-200;
+  }
+  .badge-status-reserve {
+    @apply bg-sky-50 text-sky-700 border-sky-200;
+  }
+
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-sm rounded-xl border;
+    box-shadow: var(--shadow-card);
+  }
+
+  .gradient-accent {
+    background: linear-gradient(135deg, hsl(135 55% 42%), hsl(135 65% 35%));
+  }
+
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(220 60% 18%), hsl(220 60% 28%));
+  }
+}
+
+/* Smooth scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-border rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/30;
+}

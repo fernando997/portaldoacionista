@@ -1,0 +1,1 @@
+ALTER TABLE public.onboarding_requests ADD COLUMN client_name text;

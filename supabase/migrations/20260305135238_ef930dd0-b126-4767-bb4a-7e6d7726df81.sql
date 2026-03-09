@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN id_pedido text DEFAULT NULL;

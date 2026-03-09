@@ -1,0 +1,1 @@
+CREATE POLICY "Admins can delete onboarding" ON public.onboarding_requests FOR DELETE TO authenticated USING (public.has_role(auth.uid(), 'admin'::app_role));
