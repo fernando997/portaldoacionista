@@ -171,6 +171,7 @@ export default function OnboardingPage() {
         'Certificado Digital': updatedData.certificado_digital_url,
         'Senha do Certificado': updatedData.senha_certificado,
         'CNH': updatedData.cnh_url,
+        'Procuração': updatedData.procuracao_url,
       };
       try {
         const apiRes = await fetch('https://modocorreapp.com.br/version-test/api/1.1/wf/pool-receberonboarding', {
