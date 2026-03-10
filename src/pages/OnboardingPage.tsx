@@ -174,8 +174,10 @@ export default function OnboardingPage() {
         'CNH': updatedData.cnh_url,
         'Procuração': updatedData.procuracao_url,
       };
+      const apiUrl = 'https://modocorreapp.com.br/version-test/api/1.1/wf/pool-receberonboarding';
+      const curlCommand = `curl -X POST "${apiUrl}" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(payload)}'`;
       try {
-        const apiRes = await fetch('https://modocorreapp.com.br/version-test/api/1.1/wf/pool-receberonboarding', {
+        const apiRes = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -188,7 +190,7 @@ export default function OnboardingPage() {
           response_status: apiRes.status,
           response_body: resBody,
           success: apiRes.ok,
-          error_message: apiRes.ok ? null : `HTTP ${apiRes.status}`,
+          error_message: apiRes.ok ? null : `HTTP ${apiRes.status}\n\nCURL:\n${curlCommand}`,
         } as any);
       } catch (bubbleErr: any) {
         console.error('Erro ao notificar API externa:', bubbleErr);
@@ -199,7 +201,7 @@ export default function OnboardingPage() {
           response_status: null,
           response_body: null,
           success: false,
-          error_message: bubbleErr.message || 'Erro de rede',
+          error_message: `${bubbleErr.message || 'Erro de rede'}\n\nCURL:\n${curlCommand}`,
         } as any);
       }
 
