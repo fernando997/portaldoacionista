@@ -5,7 +5,6 @@ import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { UserPlus, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 export default function AdminRegisterPage() {
   const navigate = useNavigate();
@@ -34,14 +33,13 @@ export default function AdminRegisterPage() {
     }
 
     setLoading(true);
-    const session = await supabase.auth.getSession();
-    const token = session.data.session?.access_token;
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-admin`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${anonKey}`,
+        'apikey': anonKey,
       },
       body: JSON.stringify({
         name: form.name.trim(),
