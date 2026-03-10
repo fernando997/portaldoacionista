@@ -23,7 +23,7 @@ import {
 interface OnboardingRequest {
   id: string;
   pedido_id: string;
-  client_name: string | null;
+  cliente: string | null;
   token: string;
   cnpj: string | null;
   senha_certificado: string | null;
@@ -123,7 +123,7 @@ export default function AdminOnboardingPage() {
     setCreating(true);
     const { error } = await supabase.from('onboarding_requests').insert({
       pedido_id: pedidoId.trim(),
-      client_name: clientName.trim() || null,
+      cliente: clientName.trim() || null,
       created_by: session?.user?.id,
     } as any);
     setCreating(false);
@@ -148,26 +148,28 @@ export default function AdminOnboardingPage() {
   const handleResend = async (r: OnboardingRequest) => {
     setResending(true);
     const payload = {
-      pedido: r.pedido_id,
-      cnpj: r.cnpj,
-      certificado: r.certificado_digital_url,
-      senha: r.senha_certificado,
-      cnh: r.cnh_url,
-      procuracao: r.procuracao_url,
+      'PED': r.pedido_id,
+      'CNPJ': r.cnpj,
+      'CD': r.certificado_digital_url,
+      'SENHA': r.senha_certificado,
+      'CNH': r.cnh_url,
+      'PROC': r.procuracao_url,
     };
+    const apiUrl = 'https://modocorreapp.com.br/version-test/api/1.1/wf/pool-receberonboarding';
     try {
-      const res = await fetch('https://modocorreapp.com.br/api/1.1/wf/pool_envioonboarding', {
+      const res = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const resBody = await res.text().catch(() => '');
+      const curlCommand = `curl -X POST "${apiUrl}" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(payload)}'`;
       await supabase.from('onboarding_logs').insert({
         onboarding_request_id: r.id,
         pedido_id: r.pedido_id,
         request_payload: payload,
         response_status: res.status,
-        response_body: resBody,
+        response_body: `${resBody}\n\nCURL:\n${curlCommand}`,
         success: res.ok,
         error_message: res.ok ? null : `HTTP ${res.status}`,
       } as any);
@@ -279,7 +281,7 @@ export default function AdminOnboardingPage() {
                 return (
                   <TableRow key={r.id} className="hover:bg-muted/30 transition-colors">
                     <TableCell className="font-mono font-bold text-foreground">{r.pedido_id}</TableCell>
-                    <TableCell className="text-foreground">{r.client_name || '—'}</TableCell>
+                    <TableCell className="text-foreground">{r.cliente || '—'}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3 min-w-[140px]">
                         <Progress value={progress.percent} className="h-2 flex-1" />
@@ -365,8 +367,8 @@ export default function AdminOnboardingPage() {
                 <SheetHeader className="space-y-4 pb-6">
                   <SheetTitle className="text-xl">
                     Onboarding — <span className="font-mono">{selected.pedido_id}</span>
-                    {selected.client_name && (
-                      <p className="text-sm font-normal text-muted-foreground mt-1">{selected.client_name}</p>
+                    {selected.cliente && (
+                      <p className="text-sm font-normal text-muted-foreground mt-1">{selected.cliente}</p>
                     )}
                   </SheetTitle>
                   <div className="space-y-2">
@@ -587,7 +589,7 @@ export default function AdminOnboardingPage() {
             <AlertDialogTitle>Excluir processo de onboarding?</AlertDialogTitle>
             <AlertDialogDescription>
               O onboarding do pedido <strong className="font-mono">{deleteTarget?.pedido_id}</strong>
-              {deleteTarget?.client_name && <> ({deleteTarget.client_name})</>} será excluído permanentemente. Esta ação não pode ser desfeita.
+              {deleteTarget?.cliente && <> ({deleteTarget.cliente})</>} será excluído permanentemente. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
