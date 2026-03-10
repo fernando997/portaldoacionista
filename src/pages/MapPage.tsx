@@ -53,7 +53,7 @@ interface Veiculo {
   ano: number;
   status: string;
   lat: number;
-  lng: number;
+  long: number;
   [key: string]: any;
 }
 
@@ -75,10 +75,10 @@ export default function MapPage() {
         const data = await response.json();
         if (data.status === 'success') {
           const lista: Veiculo[] = (data.response.veiculos ?? []).filter(
-            (v: any) => v.lat && v.lng
+            (v: any) => v.lat && (v.long ?? v.lng)
           );
           setVeiculos(lista);
-          if (lista.length > 0) setCenter([lista[0].lat, lista[0].lng]);
+          if (lista.length > 0) setCenter([lista[0].lat, lista[0].long ?? lista[0].lng]);
         }
       } catch (err) {
         console.error('Erro ao carregar mapa da frota:', err);
@@ -141,7 +141,7 @@ export default function MapPage() {
             {veiculos.map((moto) => (
               <Marker
                 key={moto.placa}
-                position={[moto.lat, moto.lng]}
+                position={[moto.lat, moto.long ?? moto.lng]}
                 icon={statusIcon(moto.status)}
               >
                 <Popup>
