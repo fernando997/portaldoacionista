@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export default function AdminListPage() {
-  const { shareholders, viewAs, session } = useAuth();
+  const { shareholders, viewAs } = useAuth();
   const [editing, setEditing] = useState<Shareholder | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -58,11 +58,26 @@ export default function AdminListPage() {
       body.password = form.password;
     }
 
-    const { data, error } = await supabase.functions.invoke('update-user', { body });
+    const session = await supabase.auth.getSession();
+    const token = session.data.session?.access_token;
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
     setSaving(false);
 
-    if (error || data?.error) {
-      toast.error(data?.error || error?.message || 'Erro ao atualizar');
+    if (data?.error) {
+      toast.error(data.error);
+      return;
+    }
+    if (!res.ok) {
+      toast.error(`Erro ${res.status}: ${JSON.stringify(data)}`);
       return;
     }
 

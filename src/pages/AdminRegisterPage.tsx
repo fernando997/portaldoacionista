@@ -34,8 +34,16 @@ export default function AdminRegisterPage() {
     }
 
     setLoading(true);
-    const { data, error } = await supabase.functions.invoke('create-admin', {
-      body: {
+    const session = await supabase.auth.getSession();
+    const token = session.data.session?.access_token;
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-admin`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      },
+      body: JSON.stringify({
         name: form.name.trim(),
         email: form.email.trim(),
         password: form.password,
@@ -44,12 +52,17 @@ export default function AdminRegisterPage() {
         id_locadora: form.id_locadora.trim() || null,
         id_pedido: form.id_pedido.trim() || null,
         role: 'user',
-      },
+      }),
     });
+    const data = await res.json();
     setLoading(false);
 
-    if (error || data?.error) {
-      toast.error(data?.error || error?.message || 'Erro ao cadastrar');
+    if (data?.error) {
+      toast.error(data.error);
+      return;
+    }
+    if (!res.ok) {
+      toast.error(`Erro ${res.status}: ${JSON.stringify(data)}`);
       return;
     }
 
