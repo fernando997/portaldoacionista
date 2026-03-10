@@ -167,6 +167,7 @@ export default function OnboardingPage() {
 
       // Enviar dados para o Bubble e registrar log
       const payload = {
+        'pedido': pedidoId,
         'CNPJ': updatedData.cnpj,
         'Certificado Digital': updatedData.certificado_digital_url,
         'Senha do Certificado': updatedData.senha_certificado,
