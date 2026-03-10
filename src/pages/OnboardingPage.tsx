@@ -167,12 +167,12 @@ export default function OnboardingPage() {
 
       // Enviar dados para o Bubble e registrar log
       const payload = {
-        'pedido': pedidoId,
+        'PED': pedidoId,
         'CNPJ': updatedData.cnpj,
-        'Certificado Digital': updatedData.certificado_digital_url,
-        'Senha do Certificado': updatedData.senha_certificado,
+        'CD': updatedData.certificado_digital_url,
+        'SENHA': updatedData.senha_certificado,
         'CNH': updatedData.cnh_url,
-        'Procuração': updatedData.procuracao_url,
+        'PROC': updatedData.procuracao_url,
       };
       const apiUrl = 'https://modocorreapp.com.br/version-test/api/1.1/wf/pool-receberonboarding';
       const curlCommand = `curl -X POST "${apiUrl}" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(payload)}'`;
