@@ -9,6 +9,7 @@ import LoginPage from "./pages/LoginPage";
 import PortalLayout from "./components/PortalLayout";
 import ShareholderHome from "./pages/ShareholderHome";
 import FleetPage from "./pages/FleetPage";
+import MapPage from "./pages/MapPage";
 import DocumentsPage from "./pages/DocumentsPage";
 import FinancialPage from "./pages/FinancialPage";
 import ReportsPage from "./pages/ReportsPage";
@@ -62,6 +63,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<ShareholderHome />} />
         <Route path="/frota" element={<FleetPage />} />
+        <Route path="/mapa" element={<MapPage />} />
         <Route path="/documentos" element={<DocumentsPage />} />
         <Route path="/financeiro" element={<FinancialPage />} />
         <Route path="/relatorios" element={<ReportsPage />} />

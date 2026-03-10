@@ -25,9 +25,8 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { pedido_id, cliente, api_key } = body;
+    const { pedido_id, api_key } = body;
 
-    // Simple API key check — use the ONBOARDING_API_KEY secret
     const validKey = Deno.env.get("ONBOARDING_API_KEY");
     if (!validKey || api_key !== validKey) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -43,27 +42,31 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create onboarding request using service role (bypasses RLS)
     const { data, error } = await supabase
       .from("onboarding_requests")
-      .insert({
-        pedido_id: pedido_id.trim(),
-        cliente: cliente ? String(cliente).trim() : null,
-        // Use a system UUID for API-created requests
-        created_by: "00000000-0000-0000-0000-000000000000",
-      })
-      .select("id, pedido_id, cliente, token, status, created_at")
+      .select("id, pedido_id, status, created_at, completed_at, cnpj, certificado_digital_url, cnh_url, procuracao_url")
+      .eq("pedido_id", pedido_id.trim())
+      .order("created_at", { ascending: false })
+      .limit(1)
       .single();
 
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
+    if (error || !data) {
+      return new Response(JSON.stringify({ error: "Onboarding not found" }), {
+        status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const baseUrl = Deno.env.get("ONBOARDING_BASE_URL") || "https://poolmodocorre.lovable.app";
-    const link = `${baseUrl}/onboarding?token=${data.token}`;
+    const documentos = {
+      cnpj: data.cnpj ?? null,
+      certificado_digital: data.certificado_digital_url ?? null,
+      cnh: data.cnh_url ?? null,
+      procuracao: data.procuracao_url ?? null,
+    };
+
+    const pendentes = Object.entries(documentos)
+      .filter(([, v]) => !v)
+      .map(([k]) => k);
 
     return new Response(
       JSON.stringify({
@@ -71,13 +74,14 @@ Deno.serve(async (req) => {
         onboarding: {
           id: data.id,
           pedido_id: data.pedido_id,
-          cliente: data.cliente,
           status: data.status,
           created_at: data.created_at,
-          link,
+          completed_at: data.completed_at ?? null,
+          documentos,
+          pendentes,
         },
       }),
-      { status: 201, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), {
