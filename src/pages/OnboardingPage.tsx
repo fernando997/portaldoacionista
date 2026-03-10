@@ -188,9 +188,9 @@ export default function OnboardingPage() {
           pedido_id: pedidoId,
           request_payload: payload,
           response_status: apiRes.status,
-          response_body: resBody,
+          response_body: `${resBody}\n\nCURL:\n${curlCommand}`,
           success: apiRes.ok,
-          error_message: apiRes.ok ? null : `HTTP ${apiRes.status}\n\nCURL:\n${curlCommand}`,
+          error_message: apiRes.ok ? null : `HTTP ${apiRes.status}`,
         } as any);
       } catch (bubbleErr: any) {
         console.error('Erro ao notificar API externa:', bubbleErr);
@@ -199,9 +199,9 @@ export default function OnboardingPage() {
           pedido_id: pedidoId,
           request_payload: payload,
           response_status: null,
-          response_body: null,
+          response_body: `CURL:\n${curlCommand}`,
           success: false,
-          error_message: `${bubbleErr.message || 'Erro de rede'}\n\nCURL:\n${curlCommand}`,
+          error_message: bubbleErr.message || 'Erro de rede',
         } as any);
       }
 
