@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     }
 
     const locadoraData = await locadoraRes.json();
-    const asaasToken = locadoraData?.response?.token_asaas || locadoraData?.response?.token;
+    const asaasToken = locadoraData?.response?.locadora_tck;
 
     if (!asaasToken) {
       return json({ error: "Token Asaas não encontrado para esta locadora" }, 502);
