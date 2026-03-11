@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import { Bike, CheckCircle, Wrench, AlertTriangle, Archive, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -144,6 +144,12 @@ export default function MapPage() {
                 position={[moto.lat, moto.long ?? moto.lng]}
                 icon={statusIcon(moto.status)}
               >
+                <Tooltip direction="top" offset={[0, -10]} opacity={1}>
+                  <span className="font-bold">{moto.placa}</span>
+                  {' — '}
+                  <span>{moto.status}</span>
+                  {moto.status_veiculo_desc && <><br /><span className="text-xs text-gray-500">{moto.status_veiculo_desc}</span></>}
+                </Tooltip>
                 <Popup>
                   <div className="text-sm space-y-1 min-w-[140px]">
                     <p className="font-bold text-base">{moto.placa}</p>
