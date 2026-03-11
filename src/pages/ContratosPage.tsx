@@ -11,8 +11,7 @@ interface Contrato {
   _id: string;
   'Numero ctr': number;
   'Created Date': number;
-  token_zapsign: string;
-  contrato_assinado: string;
+  url_contrato: string;
   status: string;
   'status assinatura': string;
   'tipo de contrato': string;
@@ -31,7 +30,6 @@ export default function ContratosPage() {
 
   const [contratos, setContratos] = useState<Contrato[]>([]);
   const [loading, setLoading] = useState(true);
-  const [openingId, setOpeningId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!currentShareholder.idLocadora) {
@@ -74,30 +72,14 @@ export default function ContratosPage() {
     }
   }
 
-  async function abrirContrato(token: string) {
-    setOpeningId(token);
-    try {
-      const { data, error } = await supabase.functions.invoke('get-contrato-url', {
-        body: { token },
-        headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          'x-user-token': session?.access_token ?? '',
-        },
-      });
-
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
-
-      const url =
-        data?.signers?.[0]?.sign_url ??
-        `https://app.zapsign.com.br/verificar/${token}`;
-
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao abrir contrato');
-    } finally {
-      setOpeningId(null);
+  function abrirContrato(urlRaw: string) {
+    if (!urlRaw) {
+      toast.error('Link do contrato não disponível');
+      return;
     }
+    // URL pode vir como "//cdn.bubble.io/..." (protocolo-relativo)
+    const url = urlRaw.startsWith('//') ? `https:${urlRaw}` : urlRaw;
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   function formatDate(ts: number) {
@@ -145,39 +127,33 @@ export default function ContratosPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {contratos.map((c, i) => {
-                const token = c.token_zapsign;
-                const isOpening = openingId === token;
-                return (
-                  <TableRow key={c._id ?? i} className="hover:bg-muted/30 transition-colors">
-                    <TableCell className="font-mono text-sm font-semibold">
-                      {c['Numero ctr'] ?? '—'}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                      {formatDate(c['Created Date'])}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {c['tipo de contrato'] || '—'}
-                    </TableCell>
-                    <TableCell>{statusBadge(c.status)}</TableCell>
-                    <TableCell>{statusBadge(c['status assinatura'])}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        disabled={!token || isOpening}
-                        onClick={() => token && abrirContrato(token)}
-                      >
-                        {isOpening
-                          ? <Loader2 className="w-4 h-4 animate-spin" />
-                          : <ExternalLink className="w-4 h-4" />}
-                        Ver Contrato
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {contratos.map((c, i) => (
+                <TableRow key={c._id ?? i} className="hover:bg-muted/30 transition-colors">
+                  <TableCell className="font-mono text-sm font-semibold">
+                    {c['Numero ctr'] ?? '—'}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                    {formatDate(c['Created Date'])}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {c['tipo de contrato'] || '—'}
+                  </TableCell>
+                  <TableCell>{statusBadge(c.status)}</TableCell>
+                  <TableCell>{statusBadge(c['status assinatura'])}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      disabled={!c.url_contrato}
+                      onClick={() => abrirContrato(c.url_contrato)}
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Ver Contrato
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         )}
