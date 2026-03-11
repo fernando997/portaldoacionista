@@ -8,8 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Search, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus, Receipt } from 'lucide-react';
+import { Loader2, Search, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus, Receipt, FileSpreadsheet, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Transaction {
   id: string;
@@ -142,12 +145,58 @@ export default function ExtratoPage() {
 
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+  const rows = transactions.map(t => ({
+    Data: new Date(t.date).toLocaleDateString('pt-BR'),
+    Descrição: t.description || '',
+    Tipo: typeLabel[t.type?.toUpperCase()] ?? t.type,
+    Status: statusLabel[t.status]?.label ?? t.status,
+    Valor: (isCredit(t.type) ? '+' : '-') + fmt(Math.abs(t.value)),
+    Saldo: t.balance != null ? fmt(t.balance) : '',
+  }));
+
+  function downloadXLS() {
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Extrato');
+    XLSX.writeFile(wb, `extrato_${startDate}_${finishDate}.xlsx`);
+  }
+
+  function downloadPDF() {
+    const doc = new jsPDF({ orientation: 'landscape' });
+    doc.setFontSize(13);
+    doc.text('Extrato movimentado da sua conta pela Modo Corre', 14, 14);
+    doc.setFontSize(9);
+    doc.text(`Período: ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(finishDate).toLocaleDateString('pt-BR')}`, 14, 21);
+    autoTable(doc, {
+      startY: 26,
+      head: [['Data', 'Descrição', 'Tipo', 'Status', 'Valor', 'Saldo']],
+      body: rows.map(r => [r.Data, r.Descrição, r.Tipo, r.Status, r.Valor, r.Saldo]),
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [30, 80, 40] },
+    });
+    doc.save(`extrato_${startDate}_${finishDate}.pdf`);
+  }
+
   return (
     <div className="page-container">
       {/* Header */}
-      <div className="animate-fade-in">
-        <p className="text-sm font-medium text-muted-foreground">Financeiro</p>
-        <h1 className="section-title mb-0">Extrato</h1>
+      <div className="animate-fade-in flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">Financeiro</p>
+          <h1 className="section-title mb-0">Extrato movimentado da sua conta pela Modo Corre</h1>
+        </div>
+        {searched && transactions.length > 0 && (
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="outline" size="sm" className="gap-2" onClick={downloadXLS}>
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              XLS
+            </Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={downloadPDF}>
+              <FileText className="w-4 h-4 text-red-500" />
+              PDF
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Filtros */}
