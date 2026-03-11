@@ -80,6 +80,7 @@ export default function ExtratoPage() {
         let msg = error.message || 'Erro ao buscar extrato';
         try {
           const ctx = await (error as any).context?.json?.();
+          console.error('[get-extrato] debug:', JSON.stringify(ctx));
           if (ctx?.error) msg = ctx.error;
         } catch {}
         toast.error(msg);
