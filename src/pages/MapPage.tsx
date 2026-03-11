@@ -1,12 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { MapContainer, TileLayer, Marker, Popup, Tooltip } from 'react-leaflet';
 import { Icon } from 'leaflet';
-import { Bike, CheckCircle, Wrench, AlertTriangle, Archive, Loader2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Bike, Loader2 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
-// Fix default marker icon issue with Vite/Webpack
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
@@ -18,25 +16,23 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
-  'Ativa':        { label: 'Ativa',        color: 'bg-emerald-500', icon: CheckCircle },
-  'Manutenção':   { label: 'Manutenção',   color: 'bg-amber-500',   icon: Wrench },
-  'Inadimplente': { label: 'Inadimplente', color: 'bg-red-500',     icon: AlertTriangle },
-  'Reserva':      { label: 'Reserva',      color: 'bg-slate-500',   icon: Archive },
-};
+// Paleta de cores para status dinâmicos
+const COLOR_PALETTE = [
+  { bg: 'bg-emerald-500/10', text: 'text-emerald-600', hex: '#10b981' },
+  { bg: 'bg-amber-500/10',   text: 'text-amber-600',   hex: '#f59e0b' },
+  { bg: 'bg-red-500/10',     text: 'text-red-600',     hex: '#ef4444' },
+  { bg: 'bg-blue-500/10',    text: 'text-blue-600',    hex: '#3b82f6' },
+  { bg: 'bg-purple-500/10',  text: 'text-purple-600',  hex: '#8b5cf6' },
+  { bg: 'bg-slate-500/10',   text: 'text-slate-600',   hex: '#64748b' },
+  { bg: 'bg-pink-500/10',    text: 'text-pink-600',    hex: '#ec4899' },
+  { bg: 'bg-orange-500/10',  text: 'text-orange-600',  hex: '#f97316' },
+];
 
-const statusIcon = (status: string) => {
-  const colors: Record<string, string> = {
-    'Ativa': '#10b981',
-    'Manutenção': '#f59e0b',
-    'Inadimplente': '#ef4444',
-    'Reserva': '#64748b',
-  };
-  const color = colors[status] || '#6366f1';
+const makeIcon = (hex: string) => {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
       <path d="M14 0C6.27 0 0 6.27 0 14c0 10.5 14 22 14 22S28 24.5 28 14C28 6.27 21.73 0 14 0z"
-        fill="${color}" stroke="white" stroke-width="2"/>
+        fill="${hex}" stroke="white" stroke-width="2"/>
       <circle cx="14" cy="14" r="5" fill="white"/>
     </svg>`;
   return new Icon({
@@ -52,6 +48,7 @@ interface Veiculo {
   modelo: string;
   ano: number;
   status: string;
+  status_veiculo_desc?: string;
   lat: number;
   long: number;
   [key: string]: any;
@@ -89,10 +86,23 @@ export default function MapPage() {
     fetchFleet();
   }, [currentShareholder.idLocadora]);
 
-  const counts = Object.keys(statusConfig).reduce((acc, s) => {
-    acc[s] = veiculos.filter(v => v.status === s).length;
-    return acc;
-  }, {} as Record<string, number>);
+  // Gera mapa de status_veiculo_desc → cor dinamicamente
+  const statusColorMap = useMemo(() => {
+    const unique = Array.from(new Set(veiculos.map(v => v.status_veiculo_desc || v.status || 'Sem status')));
+    const map: Record<string, typeof COLOR_PALETTE[0]> = {};
+    unique.forEach((s, i) => { map[s] = COLOR_PALETTE[i % COLOR_PALETTE.length]; });
+    return map;
+  }, [veiculos]);
+
+  // Contagem por status_veiculo_desc
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    veiculos.forEach(v => {
+      const key = v.status_veiculo_desc || v.status || 'Sem status';
+      counts[key] = (counts[key] ?? 0) + 1;
+    });
+    return counts;
+  }, [veiculos]);
 
   return (
     <div className="page-container">
@@ -101,20 +111,34 @@ export default function MapPage() {
         <h1 className="section-title">Mapa da Frota</h1>
       </div>
 
-      {/* Legenda */}
+      {/* KPI Cards dinâmicos */}
       <div className="flex flex-wrap gap-3 animate-fade-in" style={{ animationDelay: '0.05s', opacity: 0 }}>
-        {Object.entries(statusConfig).map(([key, { label, color, icon: Icon }]) => (
-          <div key={key} className="flex items-center gap-2 bg-card border rounded-lg px-3 py-2 text-sm">
-            <span className={`w-2.5 h-2.5 rounded-full ${color}`} />
-            <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="font-medium text-foreground">{label}</span>
-            <span className="text-muted-foreground font-mono">{counts[key] ?? 0}</span>
+        {/* Total */}
+        <div className="bg-card rounded-xl border p-4 flex items-center gap-3" style={{ boxShadow: 'var(--shadow-card)' }}>
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <Bike className="w-5 h-5 text-primary" />
           </div>
-        ))}
-        <div className="flex items-center gap-2 bg-card border rounded-lg px-3 py-2 text-sm ml-auto">
-          <Bike className="w-4 h-4 text-primary" />
-          <span className="font-semibold text-foreground">{veiculos.length} motos no mapa</span>
+          <div>
+            <p className="text-xl font-bold text-foreground">{veiculos.length}</p>
+            <p className="text-xs text-muted-foreground font-medium">Total no mapa</p>
+          </div>
         </div>
+
+        {/* Um card por status_veiculo_desc */}
+        {Object.entries(statusCounts).map(([label, count]) => {
+          const color = statusColorMap[label] ?? COLOR_PALETTE[5];
+          return (
+            <div key={label} className="bg-card rounded-xl border p-4 flex items-center gap-3" style={{ boxShadow: 'var(--shadow-card)' }}>
+              <div className={`w-10 h-10 rounded-xl ${color.bg} flex items-center justify-center shrink-0`}>
+                <span className={`text-lg font-bold ${color.text}`}>{count}</span>
+              </div>
+              <div>
+                <p className="text-xl font-bold text-foreground">{count}</p>
+                <p className="text-xs text-muted-foreground font-medium">{label}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Mapa */}
@@ -138,38 +162,38 @@ export default function MapPage() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {veiculos.map((moto) => (
-              <Marker
-                key={moto.placa}
-                position={[moto.lat, moto.long ?? moto.lng]}
-                icon={statusIcon(moto.status)}
-              >
-                <Tooltip direction="top" offset={[0, -10]} opacity={1}>
-                  <span className="font-bold">{moto.placa}</span>
-                  {' — '}
-                  <span>{moto.status}</span>
-                  {moto.status_veiculo_desc && <><br /><span className="text-xs text-gray-500">{moto.status_veiculo_desc}</span></>}
-                </Tooltip>
-                <Popup>
-                  <div className="text-sm space-y-1 min-w-[140px]">
-                    <p className="font-bold text-base">{moto.placa}</p>
-                    <p className="text-gray-600">{moto.modelo}</p>
-                    <p className="text-gray-500">{moto['ano-modelo'] ?? moto.ano}</p>
-                    <div className="pt-1">
-                      <span
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-white text-xs font-medium"
-                        style={{ backgroundColor: moto.status === 'Ativa' ? '#10b981' : moto.status === 'Manutenção' ? '#f59e0b' : moto.status === 'Inadimplente' ? '#ef4444' : '#64748b' }}
-                      >
-                        {moto.status}
-                      </span>
+            {veiculos.map((moto) => {
+              const descKey = moto.status_veiculo_desc || moto.status || 'Sem status';
+              const color = statusColorMap[descKey] ?? COLOR_PALETTE[5];
+              return (
+                <Marker
+                  key={moto.placa}
+                  position={[moto.lat, moto.long ?? moto.lng]}
+                  icon={makeIcon(color.hex)}
+                >
+                  <Tooltip direction="top" offset={[0, -10]} opacity={1}>
+                    <span className="font-bold">{moto.placa}</span>
+                    {' — '}
+                    <span>{descKey}</span>
+                  </Tooltip>
+                  <Popup>
+                    <div className="text-sm space-y-1 min-w-[140px]">
+                      <p className="font-bold text-base">{moto.placa}</p>
+                      <p className="text-gray-600">{moto.modelo}</p>
+                      <p className="text-gray-500">{moto['ano-modelo'] ?? moto.ano}</p>
+                      <div className="pt-1">
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-white text-xs font-medium"
+                          style={{ backgroundColor: color.hex }}
+                        >
+                          {descKey}
+                        </span>
+                      </div>
                     </div>
-                    {moto.status_veiculo_desc && (
-                      <p className="text-gray-500 text-xs">{moto.status_veiculo_desc}</p>
-                    )}
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+                  </Popup>
+                </Marker>
+              );
+            })}
           </MapContainer>
         )}
       </div>
