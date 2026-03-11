@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Search, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -20,7 +21,7 @@ interface Transaction {
   balance?: number;
 }
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 // Tipos que representam entrada (verde)
 const CREDIT_TYPES = new Set([
@@ -81,13 +82,14 @@ export default function ExtratoPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [offset, setOffset] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-  const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const currentPage = Math.floor(offset / pageSize) + 1;
 
-  const fetchExtrato = useCallback(async (newOffset = 0) => {
+  const fetchExtrato = useCallback(async (newOffset = 0, newPageSize = pageSize) => {
     if (!currentShareholder.idLocadora) {
       toast.error('Nenhuma locadora associada ao seu perfil.');
       return;
@@ -100,7 +102,7 @@ export default function ExtratoPage() {
           startDate,
           finishDate,
           offset: newOffset,
-          limit: PAGE_SIZE,
+          limit: newPageSize,
         },
         headers: {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
@@ -132,7 +134,7 @@ export default function ExtratoPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentShareholder.idLocadora, startDate, finishDate, session]);
+  }, [currentShareholder.idLocadora, startDate, finishDate, session, pageSize]);
 
   const totalCreditos = transactions.filter(t => isCredit(t.type)).reduce((s, t) => s + t.value, 0);
   const totalDebitos = transactions.filter(t => !isCredit(t.type)).reduce((s, t) => s + t.value, 0);
@@ -217,8 +219,16 @@ export default function ExtratoPage() {
 
       {/* Tabela */}
       {searched && (
-        <div className="bg-card rounded-xl border overflow-hidden animate-fade-in" style={{ boxShadow: 'var(--shadow-card)' }}>
-          {transactions.length === 0 ? (
+        <div className="bg-card rounded-xl border overflow-hidden animate-fade-in relative" style={{ boxShadow: 'var(--shadow-card)' }}>
+          {loading && (
+            <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] flex items-center justify-center z-10 rounded-xl">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Carregando...
+              </div>
+            </div>
+          )}
+          {transactions.length === 0 && !loading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
               <Receipt className="w-10 h-10 opacity-30" />
               <p className="font-medium">Nenhuma transação no período</p>
@@ -275,33 +285,56 @@ export default function ExtratoPage() {
               </Table>
 
               {/* Paginação */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/20">
+              <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/20 flex-wrap gap-2">
+                <div className="flex items-center gap-3">
                   <p className="text-xs text-muted-foreground">
                     {totalCount} transações · Página {currentPage} de {totalPages}
                   </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fetchExtrato(offset - PAGE_SIZE)}
-                      disabled={offset === 0 || loading}
-                      className="gap-1"
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground">Exibir</span>
+                    <Select
+                      value={String(pageSize)}
+                      onValueChange={(v) => {
+                        const newSize = Number(v);
+                        setPageSize(newSize);
+                        fetchExtrato(0, newSize);
+                      }}
                     >
-                      <ChevronLeft className="w-4 h-4" /> Anterior
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fetchExtrato(offset + PAGE_SIZE)}
-                      disabled={offset + PAGE_SIZE >= totalCount || loading}
-                      className="gap-1"
-                    >
-                      Próxima <ChevronRight className="w-4 h-4" />
-                    </Button>
+                      <SelectTrigger className="h-7 w-[70px] text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAGE_SIZE_OPTIONS.map(n => (
+                          <SelectItem key={n} value={String(n)} className="text-xs">{n}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-xs text-muted-foreground">por página</span>
                   </div>
                 </div>
-              )}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchExtrato(offset - pageSize)}
+                    disabled={offset === 0 || loading}
+                    className="gap-1"
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronLeft className="w-4 h-4" />}
+                    Anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchExtrato(offset + pageSize)}
+                    disabled={offset + pageSize >= totalCount || loading}
+                    className="gap-1"
+                  >
+                    Próxima
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
             </>
           )}
         </div>
