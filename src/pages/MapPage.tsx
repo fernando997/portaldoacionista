@@ -119,34 +119,54 @@ export default function MapPage() {
 
       {/* KPI Cards dinâmicos */}
       <div className="flex flex-wrap gap-3 animate-fade-in" style={{ animationDelay: '0.05s', opacity: 0 }}>
-        {/* Total */}
-        <div className="bg-card rounded-xl border p-4 flex items-center gap-3" style={{ boxShadow: 'var(--shadow-card)' }}>
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-            <Bike className="w-5 h-5 text-primary" />
+        {/* Card Total */}
+        <button
+          onClick={() => setFiltroStatus(null)}
+          className={`group relative bg-card rounded-2xl border p-5 flex items-center gap-4 text-left transition-all duration-200 min-w-[160px] ${
+            filtroStatus === null
+              ? 'ring-2 ring-primary border-primary shadow-md'
+              : 'hover:border-primary/40 hover:shadow-md'
+          }`}
+          style={{ boxShadow: 'var(--shadow-card)' }}
+        >
+          {filtroStatus === null && (
+            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+          )}
+          <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <Bike className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <p className="text-xl font-bold text-foreground">{veiculos.length}</p>
-            <p className="text-xs text-muted-foreground font-medium">Total no mapa</p>
+            <p className="text-2xl font-bold text-foreground leading-none">{veiculos.length}</p>
+            <p className="text-xs text-muted-foreground font-medium mt-1">Todos</p>
           </div>
-        </div>
+        </button>
 
         {/* Um card por status_veiculo_desc */}
         {Object.entries(statusCounts).map(([label, count]) => {
           const color = statusColorMap[label] ?? COLOR_PALETTE[5];
           const ativo = filtroStatus === label;
+          const pct = veiculos.length > 0 ? Math.round((count / veiculos.length) * 100) : 0;
           return (
             <button
               key={label}
               onClick={() => setFiltroStatus(ativo ? null : label)}
-              className={`bg-card rounded-xl border p-4 flex items-center gap-3 text-left transition-all ${ativo ? 'ring-2 ring-primary border-primary' : 'hover:border-muted-foreground/40'}`}
+              className={`group relative bg-card rounded-2xl border p-5 flex items-center gap-4 text-left transition-all duration-200 min-w-[160px] ${
+                ativo
+                  ? 'ring-2 ring-primary border-primary shadow-md'
+                  : 'hover:border-primary/40 hover:shadow-md'
+              }`}
               style={{ boxShadow: 'var(--shadow-card)' }}
             >
-              <div className={`w-10 h-10 rounded-xl ${color.bg} flex items-center justify-center shrink-0`}>
-                <span className={`text-sm font-bold ${color.text}`}>{count}</span>
+              {ativo && (
+                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
+              )}
+              <div className={`w-11 h-11 rounded-xl ${color.bg} flex items-center justify-center shrink-0`}>
+                <span className={`text-base font-bold ${color.text}`}>{count}</span>
               </div>
-              <div>
-                <p className="text-xl font-bold text-foreground">{count}</p>
-                <p className="text-xs text-muted-foreground font-medium">{label}</p>
+              <div className="min-w-0">
+                <p className="text-2xl font-bold text-foreground leading-none">{count}</p>
+                <p className="text-xs text-muted-foreground font-medium mt-1 truncate max-w-[110px]">{label}</p>
+                <p className={`text-[10px] font-semibold mt-0.5 ${color.text}`}>{pct}% da frota</p>
               </div>
             </button>
           );
