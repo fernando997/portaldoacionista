@@ -76,8 +76,17 @@ export default function ExtratoPage() {
         },
       });
 
-      if (error || data?.error) {
-        toast.error(data?.error || error?.message || 'Erro ao buscar extrato');
+      if (error) {
+        let msg = error.message || 'Erro ao buscar extrato';
+        try {
+          const ctx = await (error as any).context?.json?.();
+          if (ctx?.error) msg = ctx.error;
+        } catch {}
+        toast.error(msg);
+        return;
+      }
+      if (data?.error) {
+        toast.error(data.error);
         return;
       }
 
