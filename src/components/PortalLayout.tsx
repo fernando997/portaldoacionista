@@ -22,7 +22,7 @@ export default function PortalLayout({ children, type }: PortalLayoutProps) {
           <header className="h-16 flex items-center border-b bg-card/80 backdrop-blur-sm px-6 gap-4 sticky top-0 z-30">
             <SidebarTrigger />
             <div className="flex-1 flex items-center gap-3">
-              <img src={logo} alt="Modo Corre" className="h-8 w-auto" />
+              <img src={logo} alt="Modo Corre" className="h-12 w-auto" />
             </div>
             <div className="flex items-center gap-4">
               <button className="relative p-2 rounded-lg hover:bg-muted transition-colors">
