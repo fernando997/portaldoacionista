@@ -131,12 +131,12 @@
   }
 
   .section-title {
-    @apply text-2xl font-semibold text-foreground mb-6;
+    @apply text-xl sm:text-2xl font-semibold text-foreground mb-4 sm:mb-6;
     font-family: var(--font-display);
   }
 
   .page-container {
-    @apply p-6 md:p-8 lg:p-10 max-w-7xl mx-auto space-y-8;
+    @apply p-4 sm:p-6 md:p-8 lg:p-10 max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8;
   }
 
   .badge-status-active {

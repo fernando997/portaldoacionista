@@ -5,10 +5,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 
 const statusConfig: Record<string, { className: string; icon: any }> = {
-  'Ativa': { className: 'badge-status-active', icon: CheckCircle },
-  'Manutenção': { className: 'badge-status-maintenance', icon: Wrench },
-  'Inadimplente': { className: 'badge-status-inactive', icon: AlertTriangle },
-  'Reserva': { className: 'badge-status-reserve', icon: Archive },
+  'Ativa':        { className: 'badge-status-active',       icon: CheckCircle },
+  'Manutenção':   { className: 'badge-status-maintenance',  icon: Wrench },
+  'Inadimplente': { className: 'badge-status-inactive',     icon: AlertTriangle },
+  'Reserva':      { className: 'badge-status-reserve',      icon: Archive },
 };
 
 interface FleetData {
@@ -24,16 +24,18 @@ interface FleetData {
   }>;
 }
 
-function FleetStatCard({ label, value, icon: Icon, color, suffix }: { label: string; value: number; icon: any; color?: string; suffix?: string }) {
+function FleetStatCard({ label, value, icon: Icon, color, suffix }: {
+  label: string; value: number; icon: any; color?: string; suffix?: string;
+}) {
   return (
     <div className="stat-card">
-      <div className="flex items-center gap-4">
-        <div className={`p-3 rounded-xl ${color || 'bg-muted'}`}>
+      <div className="flex items-center gap-3">
+        <div className={`p-2.5 rounded-xl shrink-0 ${color || 'bg-muted'}`}>
           <Icon className="h-5 w-5" />
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="stat-label">{label}</p>
-          <p className="text-2xl font-bold text-foreground mt-0.5">{value}{suffix}</p>
+          <p className="text-xl sm:text-2xl font-bold text-foreground mt-0.5">{value}{suffix}</p>
         </div>
       </div>
     </div>
@@ -47,11 +49,7 @@ export default function FleetPage() {
 
   useEffect(() => {
     const fetchFleet = async () => {
-      if (!currentShareholder.idLocadora) {
-        setLoading(false);
-        return;
-      }
-
+      if (!currentShareholder.idLocadora) { setLoading(false); return; }
       try {
         const response = await fetch('https://modocorreapp.com.br/api/1.1/wf/pool_frota', {
           method: 'POST',
@@ -59,24 +57,21 @@ export default function FleetPage() {
           body: JSON.stringify({ locadora: currentShareholder.idLocadora }),
         });
         const data = await response.json();
-        if (data.status === 'success') {
-          setFleetData(data.response);
-        }
+        if (data.status === 'success') setFleetData(data.response);
       } catch (error) {
         console.error('Erro ao carregar frota:', error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchFleet();
   }, [currentShareholder.idLocadora]);
 
-  const total = fleetData?.total ?? 0;
-  const locadas = fleetData?.locadas ?? 0;
+  const total      = fleetData?.total ?? 0;
+  const locadas    = fleetData?.locadas ?? 0;
   const disponiveis = fleetData?.disponiveis ?? 0;
   const taxaLocacao = total > 0 ? Math.round((locadas / total) * 100) : 0;
-  const veiculos = fleetData?.veiculos ?? [];
+  const veiculos   = fleetData?.veiculos ?? [];
 
   return (
     <div className="page-container">
@@ -86,59 +81,72 @@ export default function FleetPage() {
       </div>
 
       {loading ? (
-        <p className="text-muted-foreground">Carregando...</p>
+        <p className="text-muted-foreground text-sm">Carregando...</p>
       ) : (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in" style={{ animationDelay: '0.1s', opacity: 0 }}>
-            <FleetStatCard label="Total" value={total} icon={Bike} color="bg-primary/10 text-primary" />
-            <FleetStatCard label="Locadas" value={locadas} icon={CheckCircle} color="bg-emerald-50 text-emerald-600" />
-            <FleetStatCard label="Disponíveis" value={disponiveis} icon={PackageOpen} color="bg-amber-50 text-amber-600" />
-            <FleetStatCard label="Taxa de Locação" value={taxaLocacao} icon={Percent} color="bg-blue-50 text-blue-600" suffix="%" />
+          {/* KPI Cards — 2 colunas no mobile, 4 no desktop */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 animate-fade-in" style={{ animationDelay: '0.1s', opacity: 0 }}>
+            <FleetStatCard label="Total"          value={total}       icon={Bike}        color="bg-primary/10 text-primary" />
+            <FleetStatCard label="Locadas"        value={locadas}     icon={CheckCircle} color="bg-emerald-50 text-emerald-600" />
+            <FleetStatCard label="Disponíveis"    value={disponiveis} icon={PackageOpen} color="bg-amber-50 text-amber-600" />
+            <FleetStatCard label="Taxa de Locação" value={taxaLocacao} icon={Percent}    color="bg-blue-50 text-blue-600" suffix="%" />
           </div>
 
           <div className="bg-card rounded-xl border overflow-hidden animate-fade-in" style={{ animationDelay: '0.2s', opacity: 0, boxShadow: 'var(--shadow-card)' }}>
-            <div className="p-5 border-b">
+            <div className="p-4 sm:p-5 border-b">
               <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Detalhamento da Frota</h2>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Placa</TableHead>
-                  <TableHead className="font-semibold">Modelo</TableHead>
-                  <TableHead className="font-semibold">Ano/Modelo</TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
-                  <TableHead className="font-semibold">Status Veículo</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {veiculos.map((moto) => {
-                  const cfg = statusConfig[moto.status] || statusConfig['Ativa'];
-                  return (
-                    <TableRow key={moto.placa} className="hover:bg-muted/30 transition-colors">
-                      <TableCell className="font-mono font-semibold text-foreground">{moto.placa}</TableCell>
-                      <TableCell className="text-foreground">{moto.modelo}</TableCell>
-                      <TableCell className="text-muted-foreground">{(moto as any)['ano-modelo'] ?? moto.ano}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={cfg.className}>
-                          <cfg.icon className="mr-1.5 h-3 w-3" />
-                          {moto.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-muted-foreground text-sm">{(moto as any).status_veiculo_desc || '—'}</span>
+
+            {/* Tabela com scroll horizontal no mobile */}
+            <div className="overflow-x-auto">
+              <Table className="min-w-[480px]">
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-semibold whitespace-nowrap">Placa</TableHead>
+                    <TableHead className="font-semibold">Modelo</TableHead>
+                    <TableHead className="font-semibold whitespace-nowrap hidden sm:table-cell">Ano/Modelo</TableHead>
+                    <TableHead className="font-semibold whitespace-nowrap">Status</TableHead>
+                    <TableHead className="font-semibold hidden md:table-cell">Status Veículo</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {veiculos.map((moto) => {
+                    const cfg = statusConfig[moto.status] || statusConfig['Ativa'];
+                    return (
+                      <TableRow key={moto.placa} className="hover:bg-muted/30 transition-colors">
+                        <TableCell className="font-mono font-semibold text-foreground whitespace-nowrap">{moto.placa}</TableCell>
+                        <TableCell className="text-foreground">
+                          <div>{moto.modelo}</div>
+                          {/* Ano em sub-linha no mobile */}
+                          <div className="text-xs text-muted-foreground sm:hidden">
+                            {(moto as any)['ano-modelo'] ?? moto.ano}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground hidden sm:table-cell whitespace-nowrap">
+                          {(moto as any)['ano-modelo'] ?? moto.ano}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={cfg.className}>
+                            <cfg.icon className="mr-1 h-3 w-3" />
+                            {moto.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <span className="text-muted-foreground text-sm">{(moto as any).status_veiculo_desc || '—'}</span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {veiculos.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        Nenhum veículo encontrado
                       </TableCell>
                     </TableRow>
-                  );
-                })}
-                {veiculos.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      Nenhum veículo encontrado
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </>
       )}

@@ -114,47 +114,53 @@ export default function ContratosPage() {
             <p className="font-medium">Nenhum contrato encontrado</p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/30 hover:bg-muted/30">
-                <TableHead className="font-semibold">Nº Contrato</TableHead>
-                <TableHead className="font-semibold">Data</TableHead>
-                <TableHead className="font-semibold">Tipo</TableHead>
-                <TableHead className="font-semibold">Status</TableHead>
-                <TableHead className="font-semibold">Assinatura</TableHead>
-                <TableHead className="font-semibold text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {contratos.map((c, i) => (
-                <TableRow key={c._id ?? i} className="hover:bg-muted/30 transition-colors">
-                  <TableCell className="font-mono text-sm font-semibold">
-                    {c['Numero ctr'] ?? '—'}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                    {formatDate(c['Created Date'])}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {c['tipo de contrato'] || '—'}
-                  </TableCell>
-                  <TableCell>{statusBadge(c.status)}</TableCell>
-                  <TableCell>{statusBadge(c['status assinatura'])}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                      disabled={!c.url_contrato}
-                      onClick={() => abrirContrato(c.url_contrato)}
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      Ver Contrato
-                    </Button>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[520px]">
+              <TableHeader>
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
+                  <TableHead className="font-semibold whitespace-nowrap">Nº Contrato</TableHead>
+                  <TableHead className="font-semibold whitespace-nowrap">Data</TableHead>
+                  <TableHead className="font-semibold hidden sm:table-cell">Tipo</TableHead>
+                  <TableHead className="font-semibold whitespace-nowrap">Status</TableHead>
+                  <TableHead className="font-semibold whitespace-nowrap hidden sm:table-cell">Assinatura</TableHead>
+                  <TableHead className="font-semibold text-right">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {contratos.map((c, i) => (
+                  <TableRow key={c._id ?? i} className="hover:bg-muted/30 transition-colors">
+                    <TableCell className="font-mono text-sm font-semibold whitespace-nowrap">
+                      {c['Numero ctr'] ?? '—'}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                      {formatDate(c['Created Date'])}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">
+                      {c['tipo de contrato'] || '—'}
+                    </TableCell>
+                    <TableCell>
+                      {statusBadge(c.status)}
+                      <div className="mt-0.5 sm:hidden">{statusBadge(c['status assinatura'])}</div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">{statusBadge(c['status assinatura'])}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 whitespace-nowrap"
+                        disabled={!c.url_contrato}
+                        onClick={() => abrirContrato(c.url_contrato)}
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        <span className="hidden sm:inline">Ver Contrato</span>
+                        <span className="sm:hidden">Ver</span>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
     </div>

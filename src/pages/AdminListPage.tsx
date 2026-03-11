@@ -101,41 +101,48 @@ export default function AdminListPage() {
       </div>
 
       <div className="bg-card rounded-xl border overflow-hidden animate-fade-in" style={{ animationDelay: '0.1s', opacity: 0, boxShadow: 'var(--shadow-card)' }}>
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="font-semibold">Nome</TableHead>
-              <TableHead className="font-semibold">Grupo</TableHead>
-              <TableHead className="font-semibold">ID Pedido</TableHead>
-              <TableHead className="text-right font-semibold">Participação</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
-              <TableHead className="text-right font-semibold">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {shareholders.map((s) => (
-              <TableRow key={s.id} className="hover:bg-muted/30 transition-colors">
-                <TableCell className="font-semibold text-foreground">{s.name}</TableCell>
-                <TableCell className="text-foreground">{s.group}</TableCell>
-                <TableCell className="font-mono text-sm text-muted-foreground">{s.idPedido || '—'}</TableCell>
-                <TableCell className="text-right font-bold text-foreground">{s.participationPercent}%</TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={s.status === 'Ativo' ? 'badge-status-active' : 'badge-status-inactive'}>
-                    {s.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right space-x-1">
-                  <Button variant="ghost" size="sm" onClick={() => openEdit(s)} className="text-muted-foreground hover:text-foreground">
-                    <Pencil className="h-4 w-4 mr-1.5" /> Editar
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => { viewAs(s.id); navigate('/'); }} className="text-muted-foreground hover:text-foreground">
-                    <Eye className="h-4 w-4 mr-1.5" /> Ver como
-                  </Button>
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table className="min-w-[560px]">
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="font-semibold">Nome</TableHead>
+                <TableHead className="font-semibold hidden sm:table-cell">Grupo</TableHead>
+                <TableHead className="font-semibold hidden md:table-cell">ID Pedido</TableHead>
+                <TableHead className="text-right font-semibold whitespace-nowrap">%</TableHead>
+                <TableHead className="font-semibold whitespace-nowrap">Status</TableHead>
+                <TableHead className="text-right font-semibold">Ações</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {shareholders.map((s) => (
+                <TableRow key={s.id} className="hover:bg-muted/30 transition-colors">
+                  <TableCell className="font-semibold text-foreground">
+                    {s.name}
+                    <div className="text-xs text-muted-foreground font-normal sm:hidden">{s.group}</div>
+                  </TableCell>
+                  <TableCell className="text-foreground hidden sm:table-cell">{s.group}</TableCell>
+                  <TableCell className="font-mono text-sm text-muted-foreground hidden md:table-cell">{s.idPedido || '—'}</TableCell>
+                  <TableCell className="text-right font-bold text-foreground whitespace-nowrap">{s.participationPercent}%</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={s.status === 'Ativo' ? 'badge-status-active' : 'badge-status-inactive'}>
+                      {s.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(s)} className="text-muted-foreground hover:text-foreground px-2">
+                        <Pencil className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Editar</span>
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => { viewAs(s.id); navigate('/'); }} className="text-muted-foreground hover:text-foreground px-2">
+                        <Eye className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Ver como</span>
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
