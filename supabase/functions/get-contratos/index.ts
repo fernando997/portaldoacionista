@@ -54,7 +54,8 @@ Deno.serve(async (req) => {
     }
 
     const data = await res.json();
-    return json({ data: data?.response ?? data });
+    // Retorna debug para inspecionar a estrutura real da API
+    return json({ data: data?.response ?? data, _debug: data });
   } catch (err: any) {
     return json({ error: err.message || "Erro interno" }, 500);
   }

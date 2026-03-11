@@ -44,7 +44,20 @@ export default function ContratosPage() {
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
 
-      const results: Contrato[] = data?.data?.results ?? data?.data ?? [];
+      // Loga estrutura completa para debug
+      console.log('[get-contratos] resposta completa:', JSON.stringify(data, null, 2));
+
+      // Tenta extrair o array de vários formatos possíveis do Bubble
+      const raw = data?.data;
+      const results: Contrato[] = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.results)
+        ? raw.results
+        : Array.isArray(raw?.contratos)
+        ? raw.contratos
+        : [];
+
+      console.log('[get-contratos] contratos extraídos:', results.length, results[0]);
       setContratos(results);
     } catch (err: any) {
       toast.error(err.message || 'Erro ao buscar contratos');
