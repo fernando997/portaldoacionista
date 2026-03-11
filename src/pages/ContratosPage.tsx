@@ -38,8 +38,7 @@ export default function ContratosPage() {
       return;
     }
     fetchContratos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentShareholder.idLocadora]);
 
   async function fetchContratos() {
     setLoading(true);

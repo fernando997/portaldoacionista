@@ -30,6 +30,8 @@ interface AuthContextType {
   shareholders: Shareholder[];
   addShareholder: (s: Shareholder) => void;
   viewAs: (id: string) => void;
+  isImpersonating: boolean;
+  returnToAdmin: () => void;
 }
 
 const defaultShareholder: Shareholder = {
@@ -56,6 +58,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [currentShareholder, setCurrentShareholder] = useState<Shareholder>(defaultShareholder);
   const [shareholders, setShareholders] = useState<Shareholder[]>([]);
+  const [isImpersonating, setIsImpersonating] = useState(false);
+  const [adminSnapshot, setAdminSnapshot] = useState<Shareholder | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -170,13 +174,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const viewAs = (id: string) => {
     const found = shareholders.find(s => s.id === id);
     if (found) {
+      setAdminSnapshot(currentShareholder);
+      setIsImpersonating(true);
       setCurrentShareholder(found);
       setRole('shareholder');
     }
   };
 
+  const returnToAdmin = () => {
+    if (adminSnapshot) setCurrentShareholder(adminSnapshot);
+    setIsImpersonating(false);
+    setAdminSnapshot(null);
+    setRole('admin');
+  };
+
   return (
-    <AuthContext.Provider value={{ role, currentShareholder, user, session, loading, login, logout, shareholders, addShareholder, viewAs }}>
+    <AuthContext.Provider value={{ role, currentShareholder, user, session, loading, login, logout, shareholders, addShareholder, viewAs, isImpersonating, returnToAdmin }}>
       {children}
     </AuthContext.Provider>
   );

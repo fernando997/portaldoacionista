@@ -1,6 +1,7 @@
-import { Home, Bike, FileText, BarChart3, ShieldCheck, LogOut, Sparkles, Map, ScrollText, FileSignature } from 'lucide-react';
+import { Home, Bike, FileText, BarChart3, ShieldCheck, LogOut, Sparkles, Map, ScrollText, FileSignature, ArrowLeftCircle } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import {
   Sidebar,
   SidebarContent,
@@ -30,7 +31,8 @@ const shareholderItems = [
 export function ShareholderSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const { logout, currentShareholder } = useAuth();
+  const { logout, currentShareholder, isImpersonating, returnToAdmin } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <Sidebar collapsible="icon">
@@ -80,6 +82,19 @@ export function ShareholderSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
+      {isImpersonating && (
+        <div className="bg-amber-500/10 border-t border-amber-500/30 p-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-xl gap-2 text-xs font-medium"
+            onClick={() => { returnToAdmin(); navigate('/admin'); }}
+          >
+            <ArrowLeftCircle className="h-4 w-4 shrink-0" />
+            {!collapsed && 'Voltar para admin'}
+          </Button>
+        </div>
+      )}
       <SidebarFooter className="bg-[hsl(220,60%,8%)] border-t border-[hsl(0,0%,100%)]/[0.06] p-3">
         {!collapsed && (
           <div className="px-3 py-3 rounded-xl bg-[hsl(0,0%,100%)]/[0.05] border border-[hsl(0,0%,100%)]/[0.08] mb-2">
