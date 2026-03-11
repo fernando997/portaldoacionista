@@ -2,16 +2,29 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, FileSignature, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Contrato {
-  'numero ctr': string;
-  'create date': string;
-  Token_zapsign: string;
-  [key: string]: unknown;
+  _id: string;
+  'Numero ctr': number;
+  'Created Date': number;
+  token_zapsign: string;
+  contrato_assinado: string;
+  status: string;
+  'status assinatura': string;
+  'tipo de contrato': string;
 }
+
+const statusCls: Record<string, string> = {
+  ATIVO:      'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  INATIVO:    'bg-red-500/10 text-red-600 border-red-500/20',
+  PENDENTE:   'bg-amber-500/10 text-amber-600 border-amber-500/20',
+  ASSINADO:   'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  AGUARDANDO: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+};
 
 export default function ContratosPage() {
   const { currentShareholder, session } = useAuth();
@@ -44,20 +57,15 @@ export default function ContratosPage() {
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
 
-      // Loga estrutura completa para debug
-      console.log('[get-contratos] resposta completa:', JSON.stringify(data, null, 2));
-
-      // Tenta extrair o array de vários formatos possíveis do Bubble
       const raw = data?.data;
       const results: Contrato[] = Array.isArray(raw)
         ? raw
-        : Array.isArray(raw?.results)
-        ? raw.results
         : Array.isArray(raw?.contratos)
         ? raw.contratos
+        : Array.isArray(raw?.results)
+        ? raw.results
         : [];
 
-      console.log('[get-contratos] contratos extraídos:', results.length, results[0]);
       setContratos(results);
     } catch (err: any) {
       toast.error(err.message || 'Erro ao buscar contratos');
@@ -80,7 +88,6 @@ export default function ContratosPage() {
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
 
-      // Tenta sign_url do primeiro signatário, senão usa o viewer padrão do ZapSign
       const url =
         data?.signers?.[0]?.sign_url ??
         `https://app.zapsign.com.br/verificar/${token}`;
@@ -93,22 +100,27 @@ export default function ContratosPage() {
     }
   }
 
-  function formatDate(raw: string) {
-    if (!raw) return '—';
-    const d = new Date(raw);
-    if (isNaN(d.getTime())) return raw;
-    return d.toLocaleDateString('pt-BR');
+  function formatDate(ts: number) {
+    if (!ts) return '—';
+    return new Date(ts).toLocaleDateString('pt-BR');
+  }
+
+  function statusBadge(label: string) {
+    const cls = statusCls[label?.toUpperCase()] ?? 'text-muted-foreground';
+    return (
+      <Badge variant="outline" className={`text-[11px] ${cls}`}>
+        {label || '—'}
+      </Badge>
+    );
   }
 
   return (
     <div className="page-container">
-      {/* Header */}
       <div className="animate-fade-in">
         <p className="text-sm font-medium text-muted-foreground">Documentos</p>
         <h1 className="section-title mb-0">Contratos</h1>
       </div>
 
-      {/* Tabela */}
       <div className="bg-card rounded-xl border overflow-hidden animate-fade-in" style={{ boxShadow: 'var(--shadow-card)' }}>
         {loading ? (
           <div className="flex items-center justify-center py-20 gap-2 text-muted-foreground">
@@ -126,21 +138,29 @@ export default function ContratosPage() {
               <TableRow className="bg-muted/30 hover:bg-muted/30">
                 <TableHead className="font-semibold">Nº Contrato</TableHead>
                 <TableHead className="font-semibold">Data</TableHead>
+                <TableHead className="font-semibold">Tipo</TableHead>
+                <TableHead className="font-semibold">Status</TableHead>
+                <TableHead className="font-semibold">Assinatura</TableHead>
                 <TableHead className="font-semibold text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {contratos.map((c, i) => {
-                const token = c.Token_zapsign;
+                const token = c.token_zapsign;
                 const isOpening = openingId === token;
                 return (
-                  <TableRow key={token ?? i} className="hover:bg-muted/30 transition-colors">
-                    <TableCell className="font-mono text-sm font-medium">
-                      {c['numero ctr'] || '—'}
+                  <TableRow key={c._id ?? i} className="hover:bg-muted/30 transition-colors">
+                    <TableCell className="font-mono text-sm font-semibold">
+                      {c['Numero ctr'] ?? '—'}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                      {formatDate(c['Created Date'])}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {formatDate(c['create date'])}
+                      {c['tipo de contrato'] || '—'}
                     </TableCell>
+                    <TableCell>{statusBadge(c.status)}</TableCell>
+                    <TableCell>{statusBadge(c['status assinatura'])}</TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="outline"
