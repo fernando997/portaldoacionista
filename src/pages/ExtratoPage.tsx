@@ -88,6 +88,7 @@ export default function ExtratoPage() {
   const [pageSize, setPageSize] = useState(20);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [tipoFiltro, setTipoFiltro] = useState<'todos' | 'receita' | 'despesa'>('todos');
 
   const totalPages = Math.ceil(totalCount / pageSize);
   const currentPage = Math.floor(offset / pageSize) + 1;
@@ -143,9 +144,15 @@ export default function ExtratoPage() {
   const totalDebitos = transactions.filter(t => !isCredit(t.type)).reduce((s, t) => s + t.value, 0);
   const saldo = totalCreditos - totalDebitos;
 
+  const filteredTransactions = transactions.filter(t => {
+    if (tipoFiltro === 'receita') return isCredit(t.type);
+    if (tipoFiltro === 'despesa') return !isCredit(t.type);
+    return true;
+  });
+
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-  const rows = transactions.map(t => ({
+  const rows = filteredTransactions.map(t => ({
     Data: new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR'),
     Descrição: t.description || '',
     Tipo: typeLabel[t.type?.toUpperCase()] ?? t.type,
@@ -221,6 +228,19 @@ export default function ExtratoPage() {
                 className="h-10"
               />
             </div>
+            <div className="space-y-1.5 min-w-[140px]">
+              <Label className="text-sm font-semibold">Tipo</Label>
+              <Select value={tipoFiltro} onValueChange={(v: any) => setTipoFiltro(v)}>
+                <SelectTrigger className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="receita">Só Receitas</SelectItem>
+                  <SelectItem value="despesa">Só Despesas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <Button
               onClick={() => fetchExtrato(0)}
               disabled={loading || !startDate || !finishDate}
@@ -277,7 +297,7 @@ export default function ExtratoPage() {
               </div>
             </div>
           )}
-          {transactions.length === 0 && !loading ? (
+          {filteredTransactions.length === 0 && !loading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
               <Receipt className="w-10 h-10 opacity-30" />
               <p className="font-medium">Nenhuma transação no período</p>
@@ -296,7 +316,7 @@ export default function ExtratoPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {transactions.map((t) => (
+                  {filteredTransactions.map((t) => (
                     <TableRow key={t.id} className="hover:bg-muted/30 transition-colors">
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}
