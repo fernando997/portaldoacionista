@@ -26,13 +26,10 @@ interface Transaction {
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
-// Tipos que representam entrada (verde)
 const CREDIT_TYPES = new Set([
   'CREDIT', 'PAYMENT_RECEIVED', 'RECEIVED', 'TRANSFER_RECEIVED',
   'INVOICE', 'REFUND_RECEIVED',
 ]);
-
-// Tipos que representam saída (vermelho)
 const DEBIT_TYPES = new Set([
   'DEBIT', 'PAYMENT_FEE', 'FEE', 'TRANSFER', 'BILL_PAYMENT',
   'SUBSCRIPTION_FEE', 'CHARGEBACK', 'REFUND', 'ANTICIPATED_PAYMENT_FEE',
@@ -42,7 +39,6 @@ function isCredit(type: string): boolean {
   const t = type?.toUpperCase();
   if (CREDIT_TYPES.has(t)) return true;
   if (DEBIT_TYPES.has(t)) return false;
-  // fallback: se contém "RECEIV" ou "RECEB" é entrada
   return t?.includes('RECEIV') || t?.includes('RECEB') || false;
 }
 
@@ -51,7 +47,7 @@ const typeLabel: Record<string, string> = {
   DEBIT: 'Saída',
   PAYMENT_RECEIVED: 'Recebimento',
   RECEIVED: 'Recebimento',
-  TRANSFER_RECEIVED: 'Transferência Recebida',
+  TRANSFER_RECEIVED: 'Transf. Recebida',
   PAYMENT_FEE: 'Taxa',
   FEE: 'Taxa',
   TRANSFER: 'Transferência',
@@ -69,9 +65,7 @@ const statusLabel: Record<string, { label: string; className: string }> = {
   CANCELLED: { label: 'Cancelado',  className: 'bg-red-500/10 text-red-600 border-red-500/20' },
 };
 
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
+function today() { return new Date().toISOString().slice(0, 10); }
 function firstDayOfMonth() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
@@ -80,17 +74,17 @@ function firstDayOfMonth() {
 export default function ExtratoPage() {
   const { currentShareholder, session } = useAuth();
 
-  const [startDate, setStartDate] = useState(firstDayOfMonth());
-  const [finishDate, setFinishDate] = useState(today());
+  const [startDate, setStartDate]     = useState(firstDayOfMonth());
+  const [finishDate, setFinishDate]   = useState(today());
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [offset, setOffset] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
-  const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [tipoFiltro, setTipoFiltro] = useState<'todos' | 'receita' | 'despesa'>('todos');
+  const [totalCount, setTotalCount]   = useState(0);
+  const [offset, setOffset]           = useState(0);
+  const [pageSize, setPageSize]       = useState(20);
+  const [loading, setLoading]         = useState(false);
+  const [searched, setSearched]       = useState(false);
+  const [tipoFiltro, setTipoFiltro]   = useState<'todos' | 'receita' | 'despesa'>('todos');
 
-  const totalPages = Math.ceil(totalCount / pageSize);
+  const totalPages  = Math.ceil(totalCount / pageSize);
   const currentPage = Math.floor(offset / pageSize) + 1;
 
   const fetchExtrato = useCallback(async (newOffset = 0, newPageSize = pageSize) => {
@@ -101,13 +95,7 @@ export default function ExtratoPage() {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('get-extrato', {
-        body: {
-          locadora: currentShareholder.idLocadora,
-          startDate,
-          finishDate,
-          offset: newOffset,
-          limit: newPageSize,
-        },
+        body: { locadora: currentShareholder.idLocadora, startDate, finishDate, offset: newOffset, limit: newPageSize },
         headers: {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           'x-user-token': session?.access_token ?? '',
@@ -116,18 +104,11 @@ export default function ExtratoPage() {
 
       if (error) {
         let msg = error.message || 'Erro ao buscar extrato';
-        try {
-          const ctx = await (error as any).context?.json?.();
-          console.error('[get-extrato] debug:', JSON.stringify(ctx));
-          if (ctx?.error) msg = ctx.error;
-        } catch {}
+        try { const ctx = await (error as any).context?.json?.(); if (ctx?.error) msg = ctx.error; } catch {}
         toast.error(msg);
         return;
       }
-      if (data?.error) {
-        toast.error(data.error);
-        return;
-      }
+      if (data?.error) { toast.error(data.error); return; }
 
       setTransactions(data.data ?? []);
       setTotalCount(data.totalCount ?? 0);
@@ -140,12 +121,12 @@ export default function ExtratoPage() {
     }
   }, [currentShareholder.idLocadora, startDate, finishDate, session, pageSize]);
 
-  const totalCreditos = transactions.filter(t => isCredit(t.type)).reduce((s, t) => s + t.value, 0);
-  const totalDebitos = transactions.filter(t => !isCredit(t.type)).reduce((s, t) => s + t.value, 0);
+  const totalCreditos = transactions.filter(t =>  isCredit(t.type)).reduce((s, t) => s + t.value, 0);
+  const totalDebitos  = transactions.filter(t => !isCredit(t.type)).reduce((s, t) => s + t.value, 0);
   const saldo = totalCreditos - totalDebitos;
 
   const filteredTransactions = transactions.filter(t => {
-    if (tipoFiltro === 'receita') return isCredit(t.type);
+    if (tipoFiltro === 'receita') return  isCredit(t.type);
     if (tipoFiltro === 'despesa') return !isCredit(t.type);
     return true;
   });
@@ -186,11 +167,14 @@ export default function ExtratoPage() {
 
   return (
     <div className="page-container">
+
       {/* Header */}
-      <div className="animate-fade-in flex items-start justify-between gap-4 flex-wrap">
+      <div className="animate-fade-in flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-muted-foreground">Financeiro</p>
-          <h1 className="section-title mb-0">Extrato movimentado da sua conta pela Modo Corre</h1>
+          <h1 className="section-title mb-0 text-xl sm:text-2xl leading-tight">
+            Extrato movimentado da sua conta pela Modo Corre
+          </h1>
         </div>
         {searched && transactions.length > 0 && (
           <div className="flex items-center gap-2 shrink-0">
@@ -209,29 +193,19 @@ export default function ExtratoPage() {
       {/* Filtros */}
       <Card className="animate-fade-in" style={{ animationDelay: '0.05s', opacity: 0 }}>
         <CardContent className="pt-5 pb-5">
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="space-y-1.5 flex-1 min-w-[140px]">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-end gap-3">
+            <div className="space-y-1.5 col-span-1">
               <Label className="text-sm font-semibold">Data inicial</Label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="h-10"
-              />
+              <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-10" />
             </div>
-            <div className="space-y-1.5 flex-1 min-w-[140px]">
+            <div className="space-y-1.5 col-span-1">
               <Label className="text-sm font-semibold">Data final</Label>
-              <Input
-                type="date"
-                value={finishDate}
-                onChange={(e) => setFinishDate(e.target.value)}
-                className="h-10"
-              />
+              <Input type="date" value={finishDate} onChange={e => setFinishDate(e.target.value)} className="h-10" />
             </div>
-            <div className="space-y-1.5 min-w-[140px]">
+            <div className="space-y-1.5 col-span-1">
               <Label className="text-sm font-semibold">Tipo</Label>
               <Select value={tipoFiltro} onValueChange={(v: any) => setTipoFiltro(v)}>
-                <SelectTrigger className="h-10">
+                <SelectTrigger className="h-10 min-w-[130px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -241,45 +215,47 @@ export default function ExtratoPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button
-              onClick={() => fetchExtrato(0)}
-              disabled={loading || !startDate || !finishDate}
-              className="gap-2 h-10"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-              Buscar
-            </Button>
+            <div className="col-span-1 sm:self-end">
+              <Button
+                onClick={() => fetchExtrato(0)}
+                disabled={loading || !startDate || !finishDate}
+                className="gap-2 h-10 w-full sm:w-auto"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                Buscar
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* KPIs — só após busca */}
+      {/* KPIs */}
       {searched && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-in">
-          <div className="bg-card rounded-xl border p-5 flex items-center gap-4" style={{ boxShadow: 'var(--shadow-card)' }}>
-            <div className="w-11 h-11 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 animate-fade-in">
+          <div className="bg-card rounded-xl border p-4 flex items-center gap-3" style={{ boxShadow: 'var(--shadow-card)' }}>
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
               <TrendingUp className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
-              <p className="text-xl font-bold text-foreground">{fmt(totalCreditos)}</p>
+              <p className="text-lg font-bold text-foreground">{fmt(totalCreditos)}</p>
               <p className="text-xs text-muted-foreground font-medium">Total Créditos</p>
             </div>
           </div>
-          <div className="bg-card rounded-xl border p-5 flex items-center gap-4" style={{ boxShadow: 'var(--shadow-card)' }}>
-            <div className="w-11 h-11 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
+          <div className="bg-card rounded-xl border p-4 flex items-center gap-3" style={{ boxShadow: 'var(--shadow-card)' }}>
+            <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
               <TrendingDown className="w-5 h-5 text-red-600" />
             </div>
             <div>
-              <p className="text-xl font-bold text-foreground">{fmt(totalDebitos)}</p>
+              <p className="text-lg font-bold text-foreground">{fmt(totalDebitos)}</p>
               <p className="text-xs text-muted-foreground font-medium">Total Débitos</p>
             </div>
           </div>
-          <div className="bg-card rounded-xl border p-5 flex items-center gap-4" style={{ boxShadow: 'var(--shadow-card)' }}>
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${saldo >= 0 ? 'bg-blue-500/10' : 'bg-red-500/10'}`}>
+          <div className="bg-card rounded-xl border p-4 flex items-center gap-3" style={{ boxShadow: 'var(--shadow-card)' }}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${saldo >= 0 ? 'bg-blue-500/10' : 'bg-red-500/10'}`}>
               <Minus className={`w-5 h-5 ${saldo >= 0 ? 'text-blue-600' : 'text-red-600'}`} />
             </div>
             <div>
-              <p className={`text-xl font-bold ${saldo >= 0 ? 'text-blue-600' : 'text-red-600'}`}>{fmt(saldo)}</p>
+              <p className={`text-lg font-bold ${saldo >= 0 ? 'text-blue-600' : 'text-red-600'}`}>{fmt(saldo)}</p>
               <p className="text-xs text-muted-foreground font-medium">Movimento do mês</p>
             </div>
           </div>
@@ -297,6 +273,7 @@ export default function ExtratoPage() {
               </div>
             </div>
           )}
+
           {filteredTransactions.length === 0 && !loading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
               <Receipt className="w-10 h-10 opacity-30" />
@@ -304,72 +281,81 @@ export default function ExtratoPage() {
             </div>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">Data</TableHead>
-                    <TableHead className="font-semibold">Descrição</TableHead>
-                    <TableHead className="font-semibold">Tipo</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
-                    <TableHead className="font-semibold text-right">Valor</TableHead>
-                    <TableHead className="font-semibold text-right">Saldo</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTransactions.map((t) => (
-                    <TableRow key={t.id} className="hover:bg-muted/30 transition-colors">
-                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}
-                      </TableCell>
-                      <TableCell className="text-sm text-foreground max-w-[260px] truncate">
-                        {t.description || '—'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          {isCredit(t.type)
-                            ? <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                            : <TrendingDown className="w-3.5 h-3.5 text-red-500" />}
-                          <span className={`text-xs font-semibold ${isCredit(t.type) ? 'text-emerald-600' : 'text-red-600'}`}>
-                            {typeLabel[t.type?.toUpperCase()] ?? t.type}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`text-[11px] ${statusLabel[t.status]?.className ?? 'text-muted-foreground'}`}
-                        >
-                          {statusLabel[t.status]?.label ?? t.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className={`text-right font-mono font-semibold text-sm ${isCredit(t.type) ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {isCredit(t.type) ? '+' : '-'}{fmt(Math.abs(t.value))}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-sm text-muted-foreground">
-                        {t.balance != null ? fmt(t.balance) : '—'}
-                      </TableCell>
+              {/* Tabela com scroll horizontal no mobile */}
+              <div className="overflow-x-auto">
+                <Table className="min-w-[600px]">
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="font-semibold whitespace-nowrap">Data</TableHead>
+                      <TableHead className="font-semibold">Descrição</TableHead>
+                      <TableHead className="font-semibold whitespace-nowrap hidden sm:table-cell">Tipo</TableHead>
+                      <TableHead className="font-semibold whitespace-nowrap hidden sm:table-cell">Status</TableHead>
+                      <TableHead className="font-semibold text-right whitespace-nowrap">Valor</TableHead>
+                      <TableHead className="font-semibold text-right whitespace-nowrap hidden md:table-cell">Saldo</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTransactions.map(t => (
+                      <TableRow key={t.id} className="hover:bg-muted/30 transition-colors">
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell className="text-sm text-foreground">
+                          <div className="max-w-[180px] sm:max-w-[260px] truncate">{t.description || '—'}</div>
+                          {/* Tipo e status em linha extra no mobile */}
+                          <div className="flex items-center gap-1.5 mt-0.5 sm:hidden">
+                            {isCredit(t.type)
+                              ? <TrendingUp className="w-3 h-3 text-emerald-500 shrink-0" />
+                              : <TrendingDown className="w-3 h-3 text-red-500 shrink-0" />}
+                            <span className={`text-[11px] font-medium ${isCredit(t.type) ? 'text-emerald-600' : 'text-red-600'}`}>
+                              {typeLabel[t.type?.toUpperCase()] ?? t.type}
+                            </span>
+                            <span className="text-muted-foreground text-[11px]">·</span>
+                            <span className="text-[11px] text-muted-foreground">
+                              {statusLabel[t.status]?.label ?? t.status}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <div className="flex items-center gap-1.5">
+                            {isCredit(t.type)
+                              ? <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+                              : <TrendingDown className="w-3.5 h-3.5 text-red-500" />}
+                            <span className={`text-xs font-semibold ${isCredit(t.type) ? 'text-emerald-600' : 'text-red-600'}`}>
+                              {typeLabel[t.type?.toUpperCase()] ?? t.type}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <Badge variant="outline" className={`text-[11px] ${statusLabel[t.status]?.className ?? 'text-muted-foreground'}`}>
+                            {statusLabel[t.status]?.label ?? t.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className={`text-right font-mono font-semibold text-sm whitespace-nowrap ${isCredit(t.type) ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {isCredit(t.type) ? '+' : '-'}{fmt(Math.abs(t.value))}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-sm text-muted-foreground whitespace-nowrap hidden md:table-cell">
+                          {t.balance != null ? fmt(t.balance) : '—'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
               {/* Paginação */}
-              <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/20 flex-wrap gap-2">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-t bg-muted/20 gap-3">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <p className="text-xs text-muted-foreground">
-                    {totalCount} transações · Página {currentPage} de {totalPages}
+                    {totalCount} transações · Pág. {currentPage}/{totalPages}
                   </p>
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs text-muted-foreground">Exibir</span>
                     <Select
                       value={String(pageSize)}
-                      onValueChange={(v) => {
-                        const newSize = Number(v);
-                        setPageSize(newSize);
-                        fetchExtrato(0, newSize);
-                      }}
+                      onValueChange={v => { const n = Number(v); setPageSize(n); fetchExtrato(0, n); }}
                     >
-                      <SelectTrigger className="h-7 w-[70px] text-xs">
+                      <SelectTrigger className="h-7 w-[64px] text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -378,26 +364,24 @@ export default function ExtratoPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <span className="text-xs text-muted-foreground">por página</span>
+                    <span className="text-xs text-muted-foreground">por pág.</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
-                    variant="outline"
-                    size="sm"
+                    variant="outline" size="sm"
                     onClick={() => fetchExtrato(offset - pageSize)}
                     disabled={offset === 0 || loading}
-                    className="gap-1"
+                    className="gap-1 flex-1 sm:flex-none"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronLeft className="w-4 h-4" />}
                     Anterior
                   </Button>
                   <Button
-                    variant="outline"
-                    size="sm"
+                    variant="outline" size="sm"
                     onClick={() => fetchExtrato(offset + pageSize)}
                     disabled={offset + pageSize >= totalCount || loading}
-                    className="gap-1"
+                    className="gap-1 flex-1 sm:flex-none"
                   >
                     Próxima
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
@@ -413,7 +397,7 @@ export default function ExtratoPage() {
       {!searched && !loading && (
         <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground animate-fade-in">
           <Receipt className="w-12 h-12 opacity-20" />
-          <p className="font-medium">Selecione o período e clique em Buscar</p>
+          <p className="font-medium text-center">Selecione o período e clique em Buscar</p>
         </div>
       )}
     </div>
