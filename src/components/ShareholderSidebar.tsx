@@ -1,4 +1,4 @@
-import { Home, Bike, FileText, BarChart3, ShieldCheck, LogOut, Sparkles, Map } from 'lucide-react';
+import { Home, Bike, FileText, BarChart3, ShieldCheck, LogOut, Sparkles, Map, ScrollText } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -20,6 +20,7 @@ const shareholderItems = [
   { title: 'Visão Geral', url: '/', icon: Home },
   { title: 'Minha Frota', url: '/frota', icon: Bike },
   { title: 'Mapa da Frota', url: '/mapa', icon: Map },
+  { title: 'Extrato', url: '/extrato', icon: ScrollText },
   { title: 'Documentos', url: '/documentos', icon: FileText },
   { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
   { title: 'Segurança', url: '/seguranca', icon: ShieldCheck },
