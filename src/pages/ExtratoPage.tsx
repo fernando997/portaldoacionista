@@ -146,7 +146,7 @@ export default function ExtratoPage() {
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   const rows = transactions.map(t => ({
-    Data: new Date(t.date).toLocaleDateString('pt-BR'),
+    Data: new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR'),
     Descrição: t.description || '',
     Tipo: typeLabel[t.type?.toUpperCase()] ?? t.type,
     Status: statusLabel[t.status]?.label ?? t.status,
@@ -166,7 +166,7 @@ export default function ExtratoPage() {
     doc.setFontSize(13);
     doc.text('Extrato movimentado da sua conta pela Modo Corre', 14, 14);
     doc.setFontSize(9);
-    doc.text(`Período: ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(finishDate).toLocaleDateString('pt-BR')}`, 14, 21);
+    doc.text(`Período: ${new Date(startDate + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(finishDate + 'T00:00:00').toLocaleDateString('pt-BR')}`, 14, 21);
     autoTable(doc, {
       startY: 26,
       head: [['Data', 'Descrição', 'Tipo', 'Status', 'Valor', 'Saldo']],
@@ -260,7 +260,7 @@ export default function ExtratoPage() {
             </div>
             <div>
               <p className={`text-xl font-bold ${saldo >= 0 ? 'text-blue-600' : 'text-red-600'}`}>{fmt(saldo)}</p>
-              <p className="text-xs text-muted-foreground font-medium">Saldo do período</p>
+              <p className="text-xs text-muted-foreground font-medium">Movimento do mês</p>
             </div>
           </div>
         </div>
@@ -299,7 +299,7 @@ export default function ExtratoPage() {
                   {transactions.map((t) => (
                     <TableRow key={t.id} className="hover:bg-muted/30 transition-colors">
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {new Date(t.date).toLocaleDateString('pt-BR')}
+                        {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}
                       </TableCell>
                       <TableCell className="text-sm text-foreground max-w-[260px] truncate">
                         {t.description || '—'}
