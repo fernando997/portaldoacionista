@@ -22,9 +22,41 @@ interface Transaction {
 
 const PAGE_SIZE = 20;
 
+// Tipos que representam entrada (verde)
+const CREDIT_TYPES = new Set([
+  'CREDIT', 'PAYMENT_RECEIVED', 'RECEIVED', 'TRANSFER_RECEIVED',
+  'INVOICE', 'REFUND_RECEIVED',
+]);
+
+// Tipos que representam saída (vermelho)
+const DEBIT_TYPES = new Set([
+  'DEBIT', 'PAYMENT_FEE', 'FEE', 'TRANSFER', 'BILL_PAYMENT',
+  'SUBSCRIPTION_FEE', 'CHARGEBACK', 'REFUND', 'ANTICIPATED_PAYMENT_FEE',
+]);
+
+function isCredit(type: string): boolean {
+  const t = type?.toUpperCase();
+  if (CREDIT_TYPES.has(t)) return true;
+  if (DEBIT_TYPES.has(t)) return false;
+  // fallback: se contém "RECEIV" ou "RECEB" é entrada
+  return t?.includes('RECEIV') || t?.includes('RECEB') || false;
+}
+
 const typeLabel: Record<string, string> = {
-  CREDIT: 'Crédito',
-  DEBIT: 'Débito',
+  CREDIT: 'Recebimento',
+  DEBIT: 'Saída',
+  PAYMENT_RECEIVED: 'Recebimento',
+  RECEIVED: 'Recebimento',
+  TRANSFER_RECEIVED: 'Transferência Recebida',
+  PAYMENT_FEE: 'Taxa',
+  FEE: 'Taxa',
+  TRANSFER: 'Transferência',
+  BILL_PAYMENT: 'Pagamento',
+  SUBSCRIPTION_FEE: 'Taxa Assinatura',
+  CHARGEBACK: 'Estorno',
+  REFUND: 'Reembolso',
+  REFUND_RECEIVED: 'Reembolso Recebido',
+  ANTICIPATED_PAYMENT_FEE: 'Taxa Antecipação',
 };
 
 const statusLabel: Record<string, { label: string; className: string }> = {
@@ -102,8 +134,8 @@ export default function ExtratoPage() {
     }
   }, [currentShareholder.idLocadora, startDate, finishDate, session]);
 
-  const totalCreditos = transactions.filter(t => t.type === 'CREDIT').reduce((s, t) => s + t.value, 0);
-  const totalDebitos = transactions.filter(t => t.type === 'DEBIT').reduce((s, t) => s + t.value, 0);
+  const totalCreditos = transactions.filter(t => isCredit(t.type)).reduce((s, t) => s + t.value, 0);
+  const totalDebitos = transactions.filter(t => !isCredit(t.type)).reduce((s, t) => s + t.value, 0);
   const saldo = totalCreditos - totalDebitos;
 
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -215,11 +247,11 @@ export default function ExtratoPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
-                          {t.type === 'CREDIT'
+                          {isCredit(t.type)
                             ? <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
                             : <TrendingDown className="w-3.5 h-3.5 text-red-500" />}
-                          <span className={`text-xs font-semibold ${t.type === 'CREDIT' ? 'text-emerald-600' : 'text-red-600'}`}>
-                            {typeLabel[t.type] ?? t.type}
+                          <span className={`text-xs font-semibold ${isCredit(t.type) ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {typeLabel[t.type?.toUpperCase()] ?? t.type}
                           </span>
                         </div>
                       </TableCell>
@@ -231,8 +263,8 @@ export default function ExtratoPage() {
                           {statusLabel[t.status]?.label ?? t.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className={`text-right font-mono font-semibold text-sm ${t.type === 'CREDIT' ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {t.type === 'CREDIT' ? '+' : '-'}{fmt(Math.abs(t.value))}
+                      <TableCell className={`text-right font-mono font-semibold text-sm ${isCredit(t.type) ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {isCredit(t.type) ? '+' : '-'}{fmt(Math.abs(t.value))}
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm text-muted-foreground">
                         {t.balance != null ? fmt(t.balance) : '—'}
