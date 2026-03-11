@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-user-token",
 };
 
 const json = (data: unknown, status = 200) =>
@@ -21,13 +21,13 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Valida JWT do usuário
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Não autorizado" }, 401);
+    // Valida JWT do usuário (pode vir no header x-user-token ou Authorization)
+    const userToken =
+      req.headers.get("x-user-token") ||
+      req.headers.get("Authorization")?.replace("Bearer ", "");
+    if (!userToken) return json({ error: "Não autorizado" }, 401);
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
+    const { data: { user }, error: authError } = await supabase.auth.getUser(userToken);
     if (authError || !user) return json({ error: "Não autorizado" }, 401);
 
     const { locadora, startDate, finishDate, offset = 0, limit = 20 } = await req.json();

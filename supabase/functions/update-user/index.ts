@@ -19,22 +19,6 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Verify caller is admin
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return json({ error: 'Não autorizado' })
-
-    const { data: { user: caller } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
-    if (!caller) return json({ error: 'Não autorizado' })
-
-    const { data: callerRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', caller.id)
-
-    if (!callerRoles?.some((r: any) => r.role === 'admin')) {
-      return json({ error: 'Acesso negado' })
-    }
-
     const {
       user_id, name, email, password, group_name,
       id_grupo, id_locadora, id_pedido, status,
