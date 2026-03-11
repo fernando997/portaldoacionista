@@ -59,6 +59,7 @@ export default function MapPage() {
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
   const [loading, setLoading] = useState(true);
   const [center, setCenter] = useState<[number, number]>([-15.7801, -47.9292]);
+  const [filtroStatus, setFiltroStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFleet = async () => {
@@ -85,6 +86,11 @@ export default function MapPage() {
     };
     fetchFleet();
   }, [currentShareholder.idLocadora]);
+
+  const veiculosFiltrados = useMemo(() =>
+    filtroStatus ? veiculos.filter(v => (v.status_veiculo_desc || v.status || 'Sem status') === filtroStatus) : veiculos,
+    [veiculos, filtroStatus]
+  );
 
   // Gera mapa de status_veiculo_desc → cor dinamicamente
   const statusColorMap = useMemo(() => {
@@ -127,16 +133,22 @@ export default function MapPage() {
         {/* Um card por status_veiculo_desc */}
         {Object.entries(statusCounts).map(([label, count]) => {
           const color = statusColorMap[label] ?? COLOR_PALETTE[5];
+          const ativo = filtroStatus === label;
           return (
-            <div key={label} className="bg-card rounded-xl border p-4 flex items-center gap-3" style={{ boxShadow: 'var(--shadow-card)' }}>
+            <button
+              key={label}
+              onClick={() => setFiltroStatus(ativo ? null : label)}
+              className={`bg-card rounded-xl border p-4 flex items-center gap-3 text-left transition-all ${ativo ? 'ring-2 ring-primary border-primary' : 'hover:border-muted-foreground/40'}`}
+              style={{ boxShadow: 'var(--shadow-card)' }}
+            >
               <div className={`w-10 h-10 rounded-xl ${color.bg} flex items-center justify-center shrink-0`}>
-                <span className={`text-lg font-bold ${color.text}`}>{count}</span>
+                <span className={`text-sm font-bold ${color.text}`}>{count}</span>
               </div>
               <div>
                 <p className="text-xl font-bold text-foreground">{count}</p>
                 <p className="text-xs text-muted-foreground font-medium">{label}</p>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -162,7 +174,7 @@ export default function MapPage() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {veiculos.map((moto) => {
+            {veiculosFiltrados.map((moto) => {
               const descKey = moto.status_veiculo_desc || moto.status || 'Sem status';
               const color = statusColorMap[descKey] ?? COLOR_PALETTE[5];
               return (
