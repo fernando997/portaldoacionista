@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth, Shareholder } from '@/contexts/AuthContext';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { toast } from 'sonner';
 
 export default function AdminListPage() {
   const { shareholders, viewAs } = useAuth();
+  const navigate = useNavigate();
   const [editing, setEditing] = useState<Shareholder | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -126,7 +128,7 @@ export default function AdminListPage() {
                   <Button variant="ghost" size="sm" onClick={() => openEdit(s)} className="text-muted-foreground hover:text-foreground">
                     <Pencil className="h-4 w-4 mr-1.5" /> Editar
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => viewAs(s.id)} className="text-muted-foreground hover:text-foreground">
+                  <Button variant="ghost" size="sm" onClick={() => { viewAs(s.id); navigate('/'); }} className="text-muted-foreground hover:text-foreground">
                     <Eye className="h-4 w-4 mr-1.5" /> Ver como
                   </Button>
                 </TableCell>

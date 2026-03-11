@@ -36,17 +36,6 @@ Deno.serve(async (req) => {
       return json({ error: "locadora, startDate e finishDate são obrigatórios" }, 400);
     }
 
-    // Verifica que o locadora pertence ao usuário autenticado
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id_locadora")
-      .eq("user_id", user.id)
-      .single();
-
-    if (!profile || profile.id_locadora !== locadora) {
-      return json({ error: "Acesso negado" }, 403);
-    }
-
     // Busca o token Asaas via pool-locadora
     const locadoraRes = await fetch("https://modocorreapp.com.br/api/1.1/wf/pool-locadora", {
       method: "POST",

@@ -32,16 +32,6 @@ Deno.serve(async (req) => {
     const { locadora } = await req.json();
     if (!locadora) return json({ error: "locadora é obrigatório" }, 400);
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id_locadora")
-      .eq("user_id", user.id)
-      .single();
-
-    if (!profile || profile.id_locadora !== locadora) {
-      return json({ error: "Acesso negado" }, 403);
-    }
-
     const res = await fetch("https://modocorreapp.com.br/api/1.1/wf/pool_contratos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
