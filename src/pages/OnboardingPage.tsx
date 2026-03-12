@@ -14,7 +14,7 @@ import {
 import { toast } from 'sonner';
 import logo from '@/assets/logo.png';
 
-const PAYMENT_API = 'https://modocorreapp.com.br/api/1.1/wf/pool-consulta-parcela-rastreador';
+const PAYMENT_API = 'https://modocorreapp.com.br/version-test/api/1.1/wf/pool-consulta-parcela-rastreador';
 
 export default function OnboardingPage() {
   const [searchParams] = useSearchParams();
@@ -90,7 +90,7 @@ export default function OnboardingPage() {
         setPaymentStatus(newStatus);
         await supabase
           .from('onboarding_requests')
-          .update({ payment_url: url, payment_status: newStatus })
+          .update({ payment_url: url, payment_status: newStatus } as any)
           .eq('id', reqId);
       }
     } catch {
@@ -150,7 +150,7 @@ export default function OnboardingPage() {
         setPaymentStatus('PAGO');
         await supabase
           .from('onboarding_requests')
-          .update({ payment_status: 'PAGO' })
+          .update({ payment_status: 'PAGO' } as any)
           .eq('id', requestId);
         toast.success('Pagamento confirmado!');
       } else {
