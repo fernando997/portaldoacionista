@@ -28,7 +28,7 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 const CREDIT_TYPES = new Set([
   'CREDIT', 'PAYMENT_RECEIVED', 'RECEIVED', 'TRANSFER_RECEIVED',
-  'INVOICE', 'REFUND_RECEIVED',
+  'INVOICE', 'REFUND_RECEIVED', 'PIX_TRANSACTION_DEBIT_REFUND',
 ]);
 const DEBIT_TYPES = new Set([
   'DEBIT', 'PAYMENT_FEE', 'FEE', 'TRANSFER', 'BILL_PAYMENT',
@@ -56,6 +56,7 @@ const typeLabel: Record<string, string> = {
   CHARGEBACK: 'Estorno',
   REFUND: 'Reembolso',
   REFUND_RECEIVED: 'Reembolso Recebido',
+  PIX_TRANSACTION_DEBIT_REFUND: 'Devolução Pix',
   ANTICIPATED_PAYMENT_FEE: 'Taxa Antecipação',
 };
 
