@@ -159,27 +159,26 @@ export default function ExtratoPage() {
   async function downloadPDF() {
     const doc = new jsPDF({ orientation: 'landscape' });
 
-    // Logo — mantém proporção original da imagem
-    const logoY = 5;
-    const logoMaxW = 50; // largura máxima em mm
+    // Logo — carrega via fetch para preservar qualidade sem compressão canvas
+    const logoMaxH = 26;
+    let logoW = logoMaxH;
+    let logoH = logoMaxH;
     try {
-      const { imgData, naturalW, naturalH } = await new Promise<{ imgData: string; naturalW: number; naturalH: number }>((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          canvas.getContext('2d')!.drawImage(img, 0, 0);
-          resolve({ imgData: canvas.toDataURL('image/png'), naturalW: img.naturalWidth, naturalH: img.naturalHeight });
-        };
-        img.onerror = reject;
-        img.src = logo;
+      const resp    = await fetch(logo);
+      const blob    = await resp.blob();
+      const imgData = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
       });
-      const ratio  = naturalH / naturalW;
-      const logoW  = logoMaxW;
-      const logoH  = logoW * ratio;
-      doc.addImage(imgData, 'PNG', 14, logoY, logoW, logoH);
+      const dim = await new Promise<{ w: number; h: number }>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+        img.onerror = () => resolve({ w: 1, h: 1 });
+        img.src = URL.createObjectURL(blob);
+      });
+      logoW = (dim.w / dim.h) * logoMaxH;
+      doc.addImage(imgData, 'PNG', 14, 4, logoW, logoH);
     } catch {}
 
     // Dados da conta Asaas
@@ -204,15 +203,16 @@ export default function ExtratoPage() {
     const pageW = doc.internal.pageSize.getWidth();
 
     // Cabeçalho — título à esquerda (ao lado da logo)
+    const textX = 14 + logoW + 5;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Extrato movimentado da sua conta pela Modo Corre', 58, 11);
+    doc.text('Extrato movimentado da sua conta pela Modo Corre', textX, 14);
 
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
     doc.text(
       `Período: ${new Date(startDate + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(finishDate + 'T00:00:00').toLocaleDateString('pt-BR')}`,
-      58, 17,
+      textX, 20,
     );
 
     // Dados da empresa (canto direito)
@@ -231,12 +231,12 @@ export default function ExtratoPage() {
       doc.setFontSize(8);
       lines.forEach((line, i) => {
         doc.setFont('helvetica', i === 0 ? 'bold' : 'normal');
-        doc.text(line, pageW - 14, logoY + i * 4.5, { align: 'right' });
+        doc.text(line, pageW - 14, 8 + i * 5, { align: 'right' });
       });
     }
 
     // Linha separadora
-    const startY = 22;
+    const startY = 33;
     doc.setDrawColor(200, 200, 200);
     doc.line(14, startY, pageW - 14, startY);
 
