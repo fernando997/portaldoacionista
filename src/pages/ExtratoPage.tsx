@@ -302,7 +302,7 @@ export default function ExtratoPage() {
                           {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}
                         </TableCell>
                         <TableCell className="text-sm text-foreground">
-                          <div className="max-w-[180px] sm:max-w-[260px] truncate">{t.description || '—'}</div>
+                          <div className="max-w-[220px] sm:max-w-xs md:max-w-sm break-words leading-snug">{t.description || '—'}</div>
                           {/* Tipo e status em linha extra no mobile */}
                           <div className="flex items-center gap-1.5 mt-0.5 sm:hidden">
                             {isCredit(t.type)
