@@ -75,15 +75,9 @@ export default function OnboardingPage() {
         body: JSON.stringify({ pedido }),
       });
       const data = await res.json();
-      console.log('[payment-api] pedido:', pedido, '| status HTTP:', res.status, '| resposta:', JSON.stringify(data));
-      const r = data?.response ?? data;
-      // Tenta vários nomes de campo possíveis para a URL
-      const url =
-        r?.link_pagamento ?? r?.url_pagamento ?? r?.url ?? r?.link ?? r?.payment_url ?? null;
-      // Tenta obter status
-      const status =
-        r?.status_pagamento ?? r?.status ?? r?.STATUS ?? 'GERADO';
-      console.log('[payment-api] url extraída:', url, '| status extraído:', status);
+      const parcela = data?.response?.parcela ?? {};
+      const url    = parcela?.url ?? null;
+      const status = parcela?.status ?? 'GERADO';
 
       if (url) {
         setPaymentUrl(url);
@@ -95,8 +89,8 @@ export default function OnboardingPage() {
           .update({ payment_url: url, payment_status: newStatus } as any)
           .eq('id', reqId);
       }
-    } catch (err: any) {
-      console.error('[payment-api] erro:', err?.message ?? err);
+    } catch {
+      // silencioso — carregado em background
     } finally {
       setLoadingPayment(false);
     }
@@ -143,9 +137,8 @@ export default function OnboardingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pedido: pedidoId }),
       });
-      const data = await res.json();
-      const r = data?.response ?? data;
-      const status = r?.status_pagamento ?? r?.status ?? r?.STATUS ?? '';
+      const data   = await res.json();
+      const status = data?.response?.parcela?.status ?? '';
       const isPago = String(status).toUpperCase() === 'PAGO';
 
       if (isPago) {
