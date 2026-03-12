@@ -76,24 +76,27 @@ export default function OnboardingPage() {
         body: JSON.stringify({ pedido }),
       });
       const data = await res.json();
+      console.log('[payment API] pedido:', pedido, 'response:', JSON.stringify(data));
       const parcela = data?.response?.parcela ?? {};
       const url      = parcela?.url ?? null;
       const status   = parcela?.status ?? 'GERADO';
       const descricao = parcela?.descricao ?? null;
+      console.log('[payment API] url:', url, 'status:', status, 'descricao:', descricao);
+
+      if (descricao) setPaymentDescricao(descricao);
 
       if (url) {
         setPaymentUrl(url);
-        if (descricao) setPaymentDescricao(descricao);
         const isPago = String(status).toUpperCase() === 'PAGO';
         const newStatus = isPago ? 'PAGO' : 'GERADO';
         setPaymentStatus(newStatus);
         await supabase
           .from('onboarding_requests')
-          .update({ payment_url: url, payment_status: newStatus } as any)
+          .update({ payment_url: url, payment_status: newStatus, payment_descricao: descricao ?? null } as any)
           .eq('id', reqId);
       }
-    } catch {
-      // silencioso — carregado em background
+    } catch (err) {
+      console.error('[payment API] erro:', err);
     } finally {
       setLoadingPayment(false);
     }
@@ -117,16 +120,15 @@ export default function OnboardingPage() {
         if (data.cnh_url) setSavedCnhUrl(data.cnh_url);
         if (data.procuracao_url) setSavedProcuracaoUrl(data.procuracao_url);
 
-        // Pagamento
+        // Pagamento — carrega dados salvos imediatamente
         if ((data as any).payment_url) {
           setPaymentUrl((data as any).payment_url);
           setPaymentStatus((data as any).payment_status ?? 'GERADO');
-          setLoading(false);
-        } else {
-          setLoading(false);
-          // Busca URL em background após carregar a página
-          fetchPaymentUrl(data.pedido_id, data.id);
+          if ((data as any).payment_descricao) setPaymentDescricao((data as any).payment_descricao);
         }
+        setLoading(false);
+        // Busca na API para atualizar descrição e status
+        fetchPaymentUrl(data.pedido_id, data.id);
       });
   }, [token]);
 
@@ -576,15 +578,16 @@ export default function OnboardingPage() {
               </div>
               <div className="flex-1">
                 <p className="font-semibold text-sm text-foreground">Pagamento referente a rastreadores</p>
-                {paymentDescricao && (
-                  <p className="text-xs text-muted-foreground mt-0.5">{paymentDescricao}</p>
-                )}
                 <p className={`text-xs font-medium mt-0.5 ${isPago ? 'text-emerald-600' : 'text-amber-600'}`}>
                   {isPago ? 'Pagamento confirmado' : 'Pagamento pendente'}
                 </p>
               </div>
               {loadingPayment && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
             </div>
+
+            {paymentDescricao && (
+              <p className="text-sm text-foreground font-medium px-1">{paymentDescricao}</p>
+            )}
 
             {!isPago && (
               <div className="space-y-2">
