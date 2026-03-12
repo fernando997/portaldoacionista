@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -290,7 +289,6 @@ export default function ExtratoPage() {
                       <TableHead className="font-semibold whitespace-nowrap">Data</TableHead>
                       <TableHead className="font-semibold">Descrição</TableHead>
                       <TableHead className="font-semibold whitespace-nowrap hidden sm:table-cell">Tipo</TableHead>
-                      <TableHead className="font-semibold whitespace-nowrap hidden sm:table-cell">Status</TableHead>
                       <TableHead className="font-semibold text-right whitespace-nowrap">Valor</TableHead>
                       <TableHead className="font-semibold text-right whitespace-nowrap hidden md:table-cell">Saldo</TableHead>
                     </TableRow>
@@ -303,17 +301,13 @@ export default function ExtratoPage() {
                         </TableCell>
                         <TableCell className="text-sm text-foreground">
                           <div className="max-w-[220px] sm:max-w-xs md:max-w-sm break-words leading-snug">{t.description || '—'}</div>
-                          {/* Tipo e status em linha extra no mobile */}
+                          {/* Tipo em linha extra no mobile */}
                           <div className="flex items-center gap-1.5 mt-0.5 sm:hidden">
                             {isCredit(t.type)
                               ? <TrendingUp className="w-3 h-3 text-emerald-500 shrink-0" />
                               : <TrendingDown className="w-3 h-3 text-red-500 shrink-0" />}
                             <span className={`text-[11px] font-medium ${isCredit(t.type) ? 'text-emerald-600' : 'text-red-600'}`}>
                               {typeLabel[t.type?.toUpperCase()] ?? t.type}
-                            </span>
-                            <span className="text-muted-foreground text-[11px]">·</span>
-                            <span className="text-[11px] text-muted-foreground">
-                              {statusLabel[t.status]?.label ?? t.status}
                             </span>
                           </div>
                         </TableCell>
@@ -326,11 +320,6 @@ export default function ExtratoPage() {
                               {typeLabel[t.type?.toUpperCase()] ?? t.type}
                             </span>
                           </div>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell">
-                          <Badge variant="outline" className={`text-[11px] ${statusLabel[t.status]?.className ?? 'text-muted-foreground'}`}>
-                            {statusLabel[t.status]?.label ?? t.status}
-                          </Badge>
                         </TableCell>
                         <TableCell className={`text-right font-mono font-semibold text-sm whitespace-nowrap ${isCredit(t.type) ? 'text-emerald-600' : 'text-red-600'}`}>
                           {isCredit(t.type) ? '+' : '-'}{fmt(Math.abs(t.value))}
