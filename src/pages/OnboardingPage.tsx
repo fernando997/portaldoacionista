@@ -75,6 +75,7 @@ export default function OnboardingPage() {
         body: JSON.stringify({ pedido }),
       });
       const data = await res.json();
+      console.log('[payment-api] pedido:', pedido, '| status HTTP:', res.status, '| resposta:', JSON.stringify(data));
       const r = data?.response ?? data;
       // Tenta vários nomes de campo possíveis para a URL
       const url =
@@ -82,6 +83,7 @@ export default function OnboardingPage() {
       // Tenta obter status
       const status =
         r?.status_pagamento ?? r?.status ?? r?.STATUS ?? 'GERADO';
+      console.log('[payment-api] url extraída:', url, '| status extraído:', status);
 
       if (url) {
         setPaymentUrl(url);
@@ -93,8 +95,8 @@ export default function OnboardingPage() {
           .update({ payment_url: url, payment_status: newStatus } as any)
           .eq('id', reqId);
       }
-    } catch {
-      // silencioso — link de pagamento é carregado no background
+    } catch (err: any) {
+      console.error('[payment-api] erro:', err?.message ?? err);
     } finally {
       setLoadingPayment(false);
     }
