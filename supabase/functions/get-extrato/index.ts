@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(userToken);
     if (authError || !user) return json({ error: "Não autorizado" }, 401);
 
-    const { locadora, startDate, finishDate, offset = 0, limit = 20 } = await req.json();
+    const { locadora, startDate, finishDate, offset = 0, limit = 20, order = "desc" } = await req.json();
 
     if (!locadora || !startDate || !finishDate) {
       return json({ error: "locadora, startDate e finishDate são obrigatórios" }, 400);
@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
       finishDate,
       offset: String(offset),
       limit: String(limit),
+      order: order === "asc" ? "asc" : "desc",
     });
 
     const asaasRes = await fetch(

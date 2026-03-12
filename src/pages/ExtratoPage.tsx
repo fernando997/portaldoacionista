@@ -89,7 +89,7 @@ export default function ExtratoPage() {
   const totalPages  = Math.ceil(totalCount / pageSize);
   const currentPage = Math.floor(offset / pageSize) + 1;
 
-  const fetchExtrato = useCallback(async (newOffset = 0, newPageSize = pageSize) => {
+  const fetchExtrato = useCallback(async (newOffset = 0, newPageSize = pageSize, newOrder = sortOrder) => {
     if (!currentShareholder.idLocadora) {
       toast.error('Nenhuma locadora associada ao seu perfil.');
       return;
@@ -97,7 +97,7 @@ export default function ExtratoPage() {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('get-extrato', {
-        body: { locadora: currentShareholder.idLocadora, startDate, finishDate, offset: newOffset, limit: newPageSize },
+        body: { locadora: currentShareholder.idLocadora, startDate, finishDate, offset: newOffset, limit: newPageSize, order: newOrder },
         headers: {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           'x-user-token': session?.access_token ?? '',
@@ -121,7 +121,7 @@ export default function ExtratoPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentShareholder.idLocadora, startDate, finishDate, session, pageSize]);
+  }, [currentShareholder.idLocadora, startDate, finishDate, session, pageSize, sortOrder]);
 
   const totalCreditos = transactions.filter(t =>  isCredit(t.type)).reduce((s, t) => s + t.value, 0);
   const totalDebitos  = transactions.filter(t => !isCredit(t.type)).reduce((s, t) => s + t.value, 0);
@@ -159,30 +159,43 @@ export default function ExtratoPage() {
   async function downloadPDF() {
     const doc = new jsPDF({ orientation: 'landscape' });
 
-    // Logo
-    let logoY = 8;
+    // Logo — carrega via HTMLImageElement + canvas para maior compatibilidade
+    const logoY = 6;
     try {
-      const imgData = await fetch(logo).then(r => r.blob()).then(b => new Promise<string>((res, rej) => {
-        const reader = new FileReader();
-        reader.onloadend = () => res(reader.result as string);
-        reader.onerror = rej;
-        reader.readAsDataURL(b);
-      }));
-      doc.addImage(imgData, 'PNG', 14, 6, 38, 12);
+      const imgData = await new Promise<string>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          canvas.getContext('2d')!.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = reject;
+        img.src = logo;
+      });
+      doc.addImage(imgData, 'PNG', 14, logoY, 38, 12);
     } catch {}
 
     // Dados da conta Asaas
     let account: any = null;
     try {
-      const { data: accData } = await supabase.functions.invoke('get-asaas-account', {
+      const { data: accData, error: accErr } = await supabase.functions.invoke('get-asaas-account', {
         body: { locadora: currentShareholder.idLocadora },
         headers: {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           'x-user-token': session?.access_token ?? '',
         },
       });
-      account = accData?.data ?? null;
-    } catch {}
+      if (!accErr && accData) {
+        // A edge function retorna { data: <objeto Asaas> }
+        account = accData?.data ?? accData ?? null;
+        console.log('[get-asaas-account] resposta:', JSON.stringify(accData));
+      }
+    } catch (e) {
+      console.warn('[get-asaas-account] erro:', e);
+    }
 
     const pageW = doc.internal.pageSize.getWidth();
 
@@ -200,11 +213,16 @@ export default function ExtratoPage() {
 
     // Dados da empresa (canto direito)
     if (account) {
-      const bankAcc = account.bankAccount;
+      const bankAcc = account.bankAccount ?? account.bank_account ?? null;
+      const bankName = bankAcc?.bank?.name ?? bankAcc?.bankName ?? '';
+      const agency   = bankAcc?.agency ?? bankAcc?.agencia ?? '';
+      const agDig    = bankAcc?.agencyDigit ? `-${bankAcc.agencyDigit}` : '';
+      const accNum   = bankAcc?.account ?? bankAcc?.conta ?? '';
+      const accDig   = bankAcc?.accountDigit ? `-${bankAcc.accountDigit}` : '';
       const lines = [
-        account.name ?? '',
-        account.cpfCnpj ? `CNPJ: ${account.cpfCnpj}` : '',
-        bankAcc ? `Banco: ${bankAcc.bank?.name ?? ''} | Ag: ${bankAcc.agency ?? ''}${bankAcc.agencyDigit ? '-' + bankAcc.agencyDigit : ''} | CC: ${bankAcc.account ?? ''}${bankAcc.accountDigit ? '-' + bankAcc.accountDigit : ''}` : '',
+        account.name ?? account.razaoSocial ?? '',
+        (account.cpfCnpj ?? account.cnpj) ? `CNPJ: ${account.cpfCnpj ?? account.cnpj}` : '',
+        bankAcc ? `Banco: ${bankName} | Ag: ${agency}${agDig} | CC: ${accNum}${accDig}` : '',
       ].filter(Boolean);
 
       doc.setFontSize(8);
@@ -284,7 +302,7 @@ export default function ExtratoPage() {
             </div>
             <div className="space-y-1.5 col-span-1">
               <Label className="text-sm font-semibold">Ordenar</Label>
-              <Select value={sortOrder} onValueChange={(v: any) => setSortOrder(v)}>
+              <Select value={sortOrder} onValueChange={(v: any) => { setSortOrder(v); }}>
                 <SelectTrigger className="h-10 min-w-[160px]">
                   <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
                   <SelectValue />
@@ -297,7 +315,7 @@ export default function ExtratoPage() {
             </div>
             <div className="col-span-1 sm:self-end">
               <Button
-                onClick={() => fetchExtrato(0)}
+                onClick={() => fetchExtrato(0, pageSize, sortOrder)}
                 disabled={loading || !startDate || !finishDate}
                 className="gap-2 h-10 w-full sm:w-auto"
               >
