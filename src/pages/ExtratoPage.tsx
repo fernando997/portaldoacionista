@@ -56,7 +56,7 @@ const typeLabel: Record<string, string> = {
   CHARGEBACK: 'Estorno',
   REFUND: 'Reembolso',
   REFUND_RECEIVED: 'Reembolso Recebido',
-  PIX_TRANSACTION_DEBIT_REFUND: 'Devolução Pix',
+  PIX_TRANSACTION_DEBIT_REFUND: 'Extorno Pix',
   ANTICIPATED_PAYMENT_FEE: 'Taxa Antecipação',
 };
 
