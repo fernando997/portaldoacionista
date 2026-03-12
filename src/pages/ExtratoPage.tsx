@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Search, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus, Receipt, FileSpreadsheet, FileText } from 'lucide-react';
+import { Loader2, Search, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus, Receipt, FileSpreadsheet, FileText, ArrowUpDown } from 'lucide-react';
+import logo from '@/assets/logo.png';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -83,6 +84,7 @@ export default function ExtratoPage() {
   const [loading, setLoading]         = useState(false);
   const [searched, setSearched]       = useState(false);
   const [tipoFiltro, setTipoFiltro]   = useState<'todos' | 'receita' | 'despesa'>('todos');
+  const [sortOrder, setSortOrder]     = useState<'desc' | 'asc'>('desc');
 
   const totalPages  = Math.ceil(totalCount / pageSize);
   const currentPage = Math.floor(offset / pageSize) + 1;
@@ -125,11 +127,16 @@ export default function ExtratoPage() {
   const totalDebitos  = transactions.filter(t => !isCredit(t.type)).reduce((s, t) => s + t.value, 0);
   const saldo = totalCreditos - totalDebitos;
 
-  const filteredTransactions = transactions.filter(t => {
-    if (tipoFiltro === 'receita') return  isCredit(t.type);
-    if (tipoFiltro === 'despesa') return !isCredit(t.type);
-    return true;
-  });
+  const filteredTransactions = transactions
+    .filter(t => {
+      if (tipoFiltro === 'receita') return  isCredit(t.type);
+      if (tipoFiltro === 'despesa') return !isCredit(t.type);
+      return true;
+    })
+    .sort((a, b) => {
+      const diff = new Date(a.date).getTime() - new Date(b.date).getTime();
+      return sortOrder === 'asc' ? diff : -diff;
+    });
 
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -149,16 +156,28 @@ export default function ExtratoPage() {
     XLSX.writeFile(wb, `extrato_${startDate}_${finishDate}.xlsx`);
   }
 
-  function downloadPDF() {
+  async function downloadPDF() {
     const doc = new jsPDF({ orientation: 'landscape' });
-    doc.setFontSize(13);
-    doc.text('Extrato movimentado da sua conta pela Modo Corre', 14, 14);
+
+    // Logo
+    try {
+      const imgData = await fetch(logo).then(r => r.blob()).then(b => new Promise<string>((res, rej) => {
+        const reader = new FileReader();
+        reader.onloadend = () => res(reader.result as string);
+        reader.onerror = rej;
+        reader.readAsDataURL(b);
+      }));
+      doc.addImage(imgData, 'PNG', 14, 6, 40, 12);
+    } catch {}
+
+    doc.setFontSize(12);
+    doc.text('Extrato movimentado da sua conta pela Modo Corre', 58, 12);
     doc.setFontSize(9);
-    doc.text(`Período: ${new Date(startDate + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(finishDate + 'T00:00:00').toLocaleDateString('pt-BR')}`, 14, 21);
+    doc.text(`Período: ${new Date(startDate + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(finishDate + 'T00:00:00').toLocaleDateString('pt-BR')}`, 58, 18);
     autoTable(doc, {
-      startY: 26,
-      head: [['Data', 'Descrição', 'Tipo', 'Status', 'Valor', 'Saldo']],
-      body: rows.map(r => [r.Data, r.Descrição, r.Tipo, r.Status, r.Valor, r.Saldo]),
+      startY: 24,
+      head: [['Data', 'Descrição', 'Tipo', 'Valor', 'Saldo']],
+      body: rows.map(r => [r.Data, r.Descrição, r.Tipo, r.Valor, r.Saldo]),
       styles: { fontSize: 8 },
       headStyles: { fillColor: [30, 80, 40] },
     });
@@ -212,6 +231,19 @@ export default function ExtratoPage() {
                   <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="receita">Só Receitas</SelectItem>
                   <SelectItem value="despesa">Só Despesas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5 col-span-1">
+              <Label className="text-sm font-semibold">Ordenar</Label>
+              <Select value={sortOrder} onValueChange={(v: any) => setSortOrder(v)}>
+                <SelectTrigger className="h-10 min-w-[160px]">
+                  <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="desc">Mais recente primeiro</SelectItem>
+                  <SelectItem value="asc">Mais antigo primeiro</SelectItem>
                 </SelectContent>
               </Select>
             </div>
