@@ -25,7 +25,9 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { pedido_id, cliente, api_key } = body;
+    const { pedido_id, api_key } = body;
+    // Aceita variações do campo nome do cliente enviadas por diferentes sistemas
+    const cliente = body.cliente ?? body.nome ?? body.name ?? body.client_name ?? body.clientName ?? null;
 
     // Simple API key check — use the ONBOARDING_API_KEY secret
     const validKey = Deno.env.get("ONBOARDING_API_KEY");
