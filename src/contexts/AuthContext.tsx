@@ -93,12 +93,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loadUserData = async (userId: string) => {
-    // Fetch profile
+    // Fetch profile — maybeSingle evita o erro 406 quando o perfil não existe
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (profile) {
       setCurrentShareholder({
