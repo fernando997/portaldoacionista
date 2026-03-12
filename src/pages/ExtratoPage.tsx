@@ -159,23 +159,27 @@ export default function ExtratoPage() {
   async function downloadPDF() {
     const doc = new jsPDF({ orientation: 'landscape' });
 
-    // Logo — carrega via HTMLImageElement + canvas para maior compatibilidade
-    const logoY = 6;
+    // Logo — mantém proporção original da imagem
+    const logoY = 5;
+    const logoMaxW = 50; // largura máxima em mm
     try {
-      const imgData = await new Promise<string>((resolve, reject) => {
+      const { imgData, naturalW, naturalH } = await new Promise<{ imgData: string; naturalW: number; naturalH: number }>((resolve, reject) => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
           canvas.getContext('2d')!.drawImage(img, 0, 0);
-          resolve(canvas.toDataURL('image/png'));
+          resolve({ imgData: canvas.toDataURL('image/png'), naturalW: img.naturalWidth, naturalH: img.naturalHeight });
         };
         img.onerror = reject;
         img.src = logo;
       });
-      doc.addImage(imgData, 'PNG', 14, logoY, 38, 12);
+      const ratio  = naturalH / naturalW;
+      const logoW  = logoMaxW;
+      const logoH  = logoW * ratio;
+      doc.addImage(imgData, 'PNG', 14, logoY, logoW, logoH);
     } catch {}
 
     // Dados da conta Asaas
