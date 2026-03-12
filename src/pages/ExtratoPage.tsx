@@ -213,23 +213,21 @@ export default function ExtratoPage() {
 
     // Dados da empresa (canto direito)
     if (account) {
-      const bankAcc = account.bankAccount ?? account.bank_account ?? null;
-      const bankName = bankAcc?.bank?.name ?? bankAcc?.bankName ?? '';
-      const agency   = bankAcc?.agency ?? bankAcc?.agencia ?? '';
-      const agDig    = bankAcc?.agencyDigit ? `-${bankAcc.agencyDigit}` : '';
-      const accNum   = bankAcc?.account ?? bankAcc?.conta ?? '';
-      const accDig   = bankAcc?.accountDigit ? `-${bankAcc.accountDigit}` : '';
-      const lines = [
-        account.name ?? account.razaoSocial ?? '',
-        (account.cpfCnpj ?? account.cnpj) ? `CNPJ: ${account.cpfCnpj ?? account.cnpj}` : '',
-        bankAcc ? `Banco: ${bankName} | Ag: ${agency}${agDig} | CC: ${accNum}${accDig}` : '',
+      const formatCnpj = (v: string) =>
+        v?.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') ?? v;
+
+      const city    = account.city?.name ?? account.province ?? '';
+      const state   = account.city?.state ?? '';
+      const lines   = [
+        account.company ?? account.name ?? '',
+        account.cpfCnpj ? `CNPJ: ${formatCnpj(account.cpfCnpj)}` : '',
+        [city, state].filter(Boolean).join(' - '),
       ].filter(Boolean);
 
       doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
       lines.forEach((line, i) => {
+        doc.setFont('helvetica', i === 0 ? 'bold' : 'normal');
         doc.text(line, pageW - 14, logoY + i * 4.5, { align: 'right' });
-        doc.setFont('helvetica', 'normal');
       });
     }
 
