@@ -80,7 +80,7 @@ export default function ExtratoPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [totalCount, setTotalCount]   = useState(0);
   const [offset, setOffset]           = useState(0);
-  const [pageSize, setPageSize]       = useState(20);
+  const [pageSize, setPageSize]       = useState(100);
   const [loading, setLoading]         = useState(false);
   const [searched, setSearched]       = useState(false);
   const [tipoFiltro, setTipoFiltro]   = useState<'todos' | 'receita' | 'despesa'>('todos');
@@ -206,13 +206,13 @@ export default function ExtratoPage() {
     const textX = 14 + logoW + 5;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Extrato movimentado da sua conta pela Modo Corre', textX, 14);
+    doc.text('Extrato movimentado da sua conta pela Modo Corre', textX, 17);
 
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
     doc.text(
       `Período: ${new Date(startDate + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(finishDate + 'T00:00:00').toLocaleDateString('pt-BR')}`,
-      textX, 20,
+      textX, 24,
     );
 
     // Dados da empresa (canto direito)
@@ -235,8 +235,8 @@ export default function ExtratoPage() {
       });
     }
 
-    // Linha separadora
-    const startY = 33;
+    // Linha separadora (logo começa em y=4, tem 26mm de altura → termina em y=30; separador com margem)
+    const startY = 38;
     doc.setDrawColor(200, 200, 200);
     doc.line(14, startY, pageW - 14, startY);
 
