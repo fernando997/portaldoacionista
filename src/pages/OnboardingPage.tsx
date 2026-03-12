@@ -76,12 +76,10 @@ export default function OnboardingPage() {
         body: JSON.stringify({ pedido }),
       });
       const data = await res.json();
-      console.log('[payment API] pedido:', pedido, 'response:', JSON.stringify(data));
       const parcela = data?.response?.parcela ?? {};
       const url      = parcela?.url ?? null;
       const status   = parcela?.status ?? 'GERADO';
       const descricao = parcela?.descricao ?? null;
-      console.log('[payment API] url:', url, 'status:', status, 'descricao:', descricao);
 
       if (descricao) setPaymentDescricao(descricao);
 
