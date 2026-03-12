@@ -160,6 +160,7 @@ export default function ExtratoPage() {
     const doc = new jsPDF({ orientation: 'landscape' });
 
     // Logo
+    let logoY = 8;
     try {
       const imgData = await fetch(logo).then(r => r.blob()).then(b => new Promise<string>((res, rej) => {
         const reader = new FileReader();
@@ -167,20 +168,67 @@ export default function ExtratoPage() {
         reader.onerror = rej;
         reader.readAsDataURL(b);
       }));
-      doc.addImage(imgData, 'PNG', 14, 6, 40, 12);
+      doc.addImage(imgData, 'PNG', 14, 6, 38, 12);
     } catch {}
 
+    // Dados da conta Asaas
+    let account: any = null;
+    try {
+      const { data: accData } = await supabase.functions.invoke('get-asaas-account', {
+        body: { locadora: currentShareholder.idLocadora },
+        headers: {
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          'x-user-token': session?.access_token ?? '',
+        },
+      });
+      account = accData?.data ?? null;
+    } catch {}
+
+    const pageW = doc.internal.pageSize.getWidth();
+
+    // Cabeçalho — título à esquerda (ao lado da logo)
     doc.setFontSize(12);
-    doc.text('Extrato movimentado da sua conta pela Modo Corre', 58, 12);
-    doc.setFontSize(9);
-    doc.text(`Período: ${new Date(startDate + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(finishDate + 'T00:00:00').toLocaleDateString('pt-BR')}`, 58, 18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Extrato movimentado da sua conta pela Modo Corre', 58, 11);
+
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(
+      `Período: ${new Date(startDate + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(finishDate + 'T00:00:00').toLocaleDateString('pt-BR')}`,
+      58, 17,
+    );
+
+    // Dados da empresa (canto direito)
+    if (account) {
+      const bankAcc = account.bankAccount;
+      const lines = [
+        account.name ?? '',
+        account.cpfCnpj ? `CNPJ: ${account.cpfCnpj}` : '',
+        bankAcc ? `Banco: ${bankAcc.bank?.name ?? ''} | Ag: ${bankAcc.agency ?? ''}${bankAcc.agencyDigit ? '-' + bankAcc.agencyDigit : ''} | CC: ${bankAcc.account ?? ''}${bankAcc.accountDigit ? '-' + bankAcc.accountDigit : ''}` : '',
+      ].filter(Boolean);
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      lines.forEach((line, i) => {
+        doc.text(line, pageW - 14, logoY + i * 4.5, { align: 'right' });
+        doc.setFont('helvetica', 'normal');
+      });
+    }
+
+    // Linha separadora
+    const startY = 22;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, startY, pageW - 14, startY);
+
     autoTable(doc, {
-      startY: 24,
+      startY: startY + 2,
       head: [['Data', 'Descrição', 'Tipo', 'Valor', 'Saldo']],
       body: rows.map(r => [r.Data, r.Descrição, r.Tipo, r.Valor, r.Saldo]),
       styles: { fontSize: 8 },
       headStyles: { fillColor: [30, 80, 40] },
+      columnStyles: { 3: { halign: 'right' }, 4: { halign: 'right' } },
     });
+
     doc.save(`extrato_${startDate}_${finishDate}.pdf`);
   }
 
