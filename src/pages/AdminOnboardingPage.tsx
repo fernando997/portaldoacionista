@@ -12,7 +12,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import {
   Link2, Plus, Copy, CheckCircle2, Clock, Loader2, FileText,
   Eye, XCircle, ShieldCheck, IdCard, FileCheck, AlertTriangle, RefreshCw, Trash2,
-  ScrollText,
+  ScrollText, CreditCard, ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -33,6 +33,8 @@ interface OnboardingRequest {
   certificado_digital_url: string | null;
   cnh_url: string | null;
   procuracao_url: string | null;
+  payment_url: string | null;
+  payment_status: string | null;
 }
 
 interface OnboardingLog {
@@ -109,7 +111,7 @@ export default function AdminOnboardingPage() {
       .from('onboarding_requests')
       .select('*')
       .order('created_at', { ascending: false });
-    setRequests((data as OnboardingRequest[]) || []);
+    setRequests((data as unknown as OnboardingRequest[]) || []);
     setLoading(false);
   };
 
@@ -269,6 +271,7 @@ export default function AdminOnboardingPage() {
                 <TableHead className="font-semibold">Cliente</TableHead>
                 <TableHead className="font-semibold">Progresso</TableHead>
                 <TableHead className="font-semibold">Status</TableHead>
+                <TableHead className="font-semibold whitespace-nowrap">Pagamento</TableHead>
                 <TableHead className="font-semibold">Itens Pendentes</TableHead>
                 <TableHead className="font-semibold">Criado em</TableHead>
                 <TableHead className="text-right font-semibold">Ações</TableHead>
@@ -298,6 +301,17 @@ export default function AdminOnboardingPage() {
                       ) : (
                         <Badge variant="outline" className="gap-1 text-[hsl(38,92%,50%)] border-[hsl(38,92%,50%)]/30 bg-[hsl(38,92%,50%)]/10">
                           <Clock className="w-3 h-3" /> Pendente
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {r.payment_status?.toUpperCase() === 'PAGO' ? (
+                        <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1 whitespace-nowrap">
+                          <CheckCircle2 className="w-3 h-3" /> Pago
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="gap-1 text-amber-600 border-amber-500/30 bg-amber-500/10 whitespace-nowrap">
+                          <CreditCard className="w-3 h-3" /> Pendente
                         </Badge>
                       )}
                     </TableCell>
@@ -435,6 +449,26 @@ export default function AdminOnboardingPage() {
                 </div>
 
                 <div className="mt-6 pt-4 border-t space-y-3">
+                  {/* Pagamento */}
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Pagamento</span>
+                    {selected.payment_status?.toUpperCase() === 'PAGO' ? (
+                      <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Pago
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="gap-1 text-amber-600 border-amber-500/30 bg-amber-500/10">
+                        <CreditCard className="w-3 h-3" /> Pendente
+                      </Badge>
+                    )}
+                  </div>
+                  {selected.payment_url && (
+                    <a href={selected.payment_url} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" size="sm" className="w-full gap-2 text-amber-600 border-amber-500/30 hover:bg-amber-500/5">
+                        <ExternalLink className="w-3.5 h-3.5" /> Ver Link de Pagamento
+                      </Button>
+                    </a>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Criado em</span>
                     <span className="font-medium text-foreground">

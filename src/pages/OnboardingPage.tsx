@@ -9,9 +9,12 @@ import { Progress } from '@/components/ui/progress';
 import {
   Loader2, Upload, CheckCircle2, FileText, AlertCircle,
   ShieldCheck, IdCard, FileCheck, Send, Eye, EyeOff, Cloud,
+  CreditCard, ExternalLink, RefreshCw, Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import logo from '@/assets/logo.png';
+
+const PAYMENT_API = 'https://modocorreapp.com.br/api/1.1/wf/pool-consulta-parcela-rastreador';
 
 export default function OnboardingPage() {
   const [searchParams] = useSearchParams();
@@ -37,6 +40,12 @@ export default function OnboardingPage() {
   const [savedCnhUrl, setSavedCnhUrl] = useState<string | null>(null);
   const [savedProcuracaoUrl, setSavedProcuracaoUrl] = useState<string | null>(null);
 
+  // Pagamento
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<string>('GERADO');
+  const [loadingPayment, setLoadingPayment] = useState(false);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
+
   // Estado de upload por campo
   const [uploadingCert, setUploadingCert] = useState(false);
   const [uploadingCnh, setUploadingCnh] = useState(false);
@@ -56,6 +65,41 @@ export default function OnboardingPage() {
       .replace(/(\d{4})(\d)/, '$1-$2');
   };
 
+  // Busca URL de pagamento na Bubble
+  const fetchPaymentUrl = async (pedido: string, reqId: string) => {
+    setLoadingPayment(true);
+    try {
+      const res = await fetch(PAYMENT_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pedido }),
+      });
+      const data = await res.json();
+      const r = data?.response ?? data;
+      // Tenta vários nomes de campo possíveis para a URL
+      const url =
+        r?.link_pagamento ?? r?.url_pagamento ?? r?.url ?? r?.link ?? r?.payment_url ?? null;
+      // Tenta obter status
+      const status =
+        r?.status_pagamento ?? r?.status ?? r?.STATUS ?? 'GERADO';
+
+      if (url) {
+        setPaymentUrl(url);
+        const isPago = String(status).toUpperCase() === 'PAGO';
+        const newStatus = isPago ? 'PAGO' : 'GERADO';
+        setPaymentStatus(newStatus);
+        await supabase
+          .from('onboarding_requests')
+          .update({ payment_url: url, payment_status: newStatus })
+          .eq('id', reqId);
+      }
+    } catch {
+      // silencioso — link de pagamento é carregado no background
+    } finally {
+      setLoadingPayment(false);
+    }
+  };
+
   useEffect(() => {
     if (!token) { setInvalid(true); setLoading(false); return; }
     supabase
@@ -73,9 +117,51 @@ export default function OnboardingPage() {
         if (data.certificado_digital_url) setSavedCertificadoUrl(data.certificado_digital_url);
         if (data.cnh_url) setSavedCnhUrl(data.cnh_url);
         if (data.procuracao_url) setSavedProcuracaoUrl(data.procuracao_url);
-        setLoading(false);
+
+        // Pagamento
+        if ((data as any).payment_url) {
+          setPaymentUrl((data as any).payment_url);
+          setPaymentStatus((data as any).payment_status ?? 'GERADO');
+          setLoading(false);
+        } else {
+          setLoading(false);
+          // Busca URL em background após carregar a página
+          fetchPaymentUrl(data.pedido_id, data.id);
+        }
       });
   }, [token]);
+
+  // Verificar pagamento manualmente
+  const handleVerifyPayment = async () => {
+    if (!pedidoId || !requestId) return;
+    setVerifyingPayment(true);
+    try {
+      const res = await fetch(PAYMENT_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pedido: pedidoId }),
+      });
+      const data = await res.json();
+      const r = data?.response ?? data;
+      const status = r?.status_pagamento ?? r?.status ?? r?.STATUS ?? '';
+      const isPago = String(status).toUpperCase() === 'PAGO';
+
+      if (isPago) {
+        setPaymentStatus('PAGO');
+        await supabase
+          .from('onboarding_requests')
+          .update({ payment_status: 'PAGO' })
+          .eq('id', requestId);
+        toast.success('Pagamento confirmado!');
+      } else {
+        toast.info('Pagamento ainda não identificado. Tente novamente em alguns minutos.');
+      }
+    } catch (err: any) {
+      toast.error('Erro ao verificar pagamento: ' + (err.message || ''));
+    } finally {
+      setVerifyingPayment(false);
+    }
+  };
 
   const cnpjDigits = cnpj.replace(/\D/g, '');
   const cnpjValido = cnpjDigits.length === 14;
@@ -134,14 +220,17 @@ export default function OnboardingPage() {
     }
   };
 
+  const isPago = paymentStatus?.toUpperCase() === 'PAGO';
+
   const progressPercent = useMemo(() => {
     let filled = 0;
     if (cnpjValido) filled++;
     if ((savedCertificadoUrl || certificadoFile) && senhaCertificado.trim()) filled++;
     if (savedCnhUrl || cnhFile) filled++;
     if (savedProcuracaoUrl || procuracaoFile) filled++;
-    return Math.round((filled / 4) * 100);
-  }, [cnpjValido, savedCertificadoUrl, certificadoFile, senhaCertificado, savedCnhUrl, cnhFile, savedProcuracaoUrl, procuracaoFile]);
+    if (isPago) filled++;
+    return Math.round((filled / 5) * 100);
+  }, [cnpjValido, savedCertificadoUrl, certificadoFile, senhaCertificado, savedCnhUrl, cnhFile, savedProcuracaoUrl, procuracaoFile, isPago]);
 
   const allFilled = progressPercent === 100;
 
@@ -316,34 +405,11 @@ export default function OnboardingPage() {
   };
 
   const sections = [
-    {
-      id: 'cnpj',
-      icon: ShieldCheck,
-      title: 'CNPJ da Empresa',
-      done: cnpjValido,
-      saving: savingCnpj,
-    },
-    {
-      id: 'cert',
-      icon: FileCheck,
-      title: 'Certificado Digital',
-      done: !!(savedCertificadoUrl || certificadoFile) && senhaCertificado.trim().length > 0,
-      saving: uploadingCert || savingSenha,
-    },
-    {
-      id: 'cnh',
-      icon: IdCard,
-      title: 'CNH',
-      done: !!(savedCnhUrl || cnhFile),
-      saving: uploadingCnh,
-    },
-    {
-      id: 'proc',
-      icon: FileText,
-      title: 'Procuração',
-      done: !!(savedProcuracaoUrl || procuracaoFile),
-      saving: uploadingProc,
-    },
+    { id: 'payment', icon: CreditCard, title: 'Pagamento da Parcela', done: isPago, saving: loadingPayment },
+    { id: 'cnpj', icon: ShieldCheck, title: 'CNPJ da Empresa', done: cnpjValido, saving: savingCnpj },
+    { id: 'cert', icon: FileCheck, title: 'Certificado Digital', done: !!(savedCertificadoUrl || certificadoFile) && senhaCertificado.trim().length > 0, saving: uploadingCert || savingSenha },
+    { id: 'cnh', icon: IdCard, title: 'CNH', done: !!(savedCnhUrl || cnhFile), saving: uploadingCnh },
+    { id: 'proc', icon: FileText, title: 'Procuração', done: !!(savedProcuracaoUrl || procuracaoFile), saving: uploadingProc },
   ];
 
   return (
@@ -377,6 +443,64 @@ export default function OnboardingPage() {
                 />
               ))}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Pagamento */}
+        <Card className={isPago ? 'border-emerald-400/40 bg-emerald-50/30 dark:bg-emerald-500/5' : 'border-amber-400/40 bg-amber-50/30 dark:bg-amber-500/5'}>
+          <CardContent className="pt-5 pb-5 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isPago ? 'bg-emerald-500/15' : 'bg-amber-500/15'}`}>
+                {isPago
+                  ? <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                  : <CreditCard className="w-5 h-5 text-amber-600" />}
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-sm text-foreground">Pagamento da Parcela</p>
+                <p className={`text-xs font-medium mt-0.5 ${isPago ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  {isPago ? 'Pagamento confirmado' : 'Pagamento pendente'}
+                </p>
+              </div>
+              {loadingPayment && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
+            </div>
+
+            {!isPago && (
+              <div className="space-y-2">
+                {paymentUrl ? (
+                  <>
+                    <a href={paymentUrl} target="_blank" rel="noopener noreferrer" className="block">
+                      <Button className="w-full gap-2 bg-amber-500 hover:bg-amber-600 text-white">
+                        <ExternalLink className="w-4 h-4" />
+                        Realizar Pagamento
+                      </Button>
+                    </a>
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2"
+                      onClick={handleVerifyPayment}
+                      disabled={verifyingPayment}
+                    >
+                      {verifyingPayment
+                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Verificando...</>
+                        : <><RefreshCw className="w-4 h-4" /> Verificar Pagamento</>}
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Após realizar o pagamento, clique em "Verificar Pagamento" para continuar.
+                    </p>
+                  </>
+                ) : loadingPayment ? (
+                  <div className="flex items-center justify-center gap-2 py-2 text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Carregando link de pagamento...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 py-2 text-muted-foreground">
+                    <Clock className="w-4 h-4" />
+                    <span className="text-sm">Link de pagamento não disponível para este pedido.</span>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -512,6 +636,8 @@ export default function OnboardingPage() {
             <><Loader2 className="w-5 h-5 animate-spin" /> Finalizando envio...</>
           ) : allFilled ? (
             <><Send className="w-5 h-5" /> Confirmar e Enviar</>
+          ) : !isPago ? (
+            <span className="text-sm opacity-80">Realize o pagamento para continuar</span>
           ) : (
             <span className="text-sm opacity-80">{progressPercent}% completo — preencha todos os campos</span>
           )}
