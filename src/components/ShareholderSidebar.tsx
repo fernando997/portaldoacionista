@@ -33,7 +33,6 @@ const NAV_GROUPS = [
     items: [
       { title: 'Extrato', url: '/extrato', icon: ScrollText },
       { title: 'Contratos', url: '/contratos', icon: FileSignature },
-      { title: 'Financeiro', url: '/financeiro', icon: BarChart3 },
     ],
   },
   {
