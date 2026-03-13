@@ -155,7 +155,8 @@ export default function ShareholderHome() {
       ? `${((clientMotos / frotaTotal) * 100).toFixed(1)}%`
       : null;
 
-  const firstName = currentShareholder.name.split(' ')[0];
+  const fullName = currentShareholder.name;
+  const initials = fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
 
@@ -163,19 +164,39 @@ export default function ShareholderHome() {
     <div className="page-container space-y-8">
 
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[hsl(220,60%,18%)] to-[hsl(220,60%,10%)] px-6 py-7 text-white shadow-elevated animate-fade-in">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[hsl(220,60%,18%)] to-[hsl(220,60%,10%)] px-6 py-8 text-white shadow-elevated animate-fade-in">
+        {/* Glow */}
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 80% 50%, hsl(135,55%,42%), transparent 60%)' }} />
-        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-white/60">{greeting},</p>
-            <h1 className="text-2xl sm:text-3xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>
-              {firstName}.
-            </h1>
-            <p className="text-sm text-white/60 mt-1">Aqui está o resumo do seu investimento.</p>
+        {/* Grid pattern */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: 'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
+        }} />
+
+        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+          {/* Avatar + texto */}
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[hsl(135,55%,42%)] to-[hsl(135,65%,32%)] flex items-center justify-center shrink-0 shadow-lg">
+              <span className="text-lg font-bold text-white">{initials}</span>
+            </div>
+            <div className="space-y-0.5">
+              <p className="text-sm font-medium text-white/50">{greeting},</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                {fullName}
+              </h1>
+              {currentShareholder.group && (
+                <p className="text-xs text-white/40 font-medium">{currentShareholder.group}</p>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-xs font-medium text-white/50 bg-white/10 px-3 py-2 rounded-full self-start sm:self-auto">
-            <CalendarDays className="w-3.5 h-3.5" />
-            {currentMonthLabel()}
+
+          {/* Meta */}
+          <div className="flex flex-col items-start sm:items-end gap-2 shrink-0">
+            <div className="flex items-center gap-2 text-xs font-medium text-white/50 bg-white/10 px-3 py-1.5 rounded-full">
+              <CalendarDays className="w-3.5 h-3.5" />
+              {currentMonthLabel()}
+            </div>
+            <p className="text-xs text-white/30">Portal do Acionista</p>
           </div>
         </div>
       </div>

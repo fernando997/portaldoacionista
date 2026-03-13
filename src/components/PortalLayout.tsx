@@ -72,7 +72,7 @@ export default function PortalLayout({ children, type }: PortalLayoutProps) {
               </div>
               <div className="hidden sm:block leading-tight">
                 <p className="text-sm font-medium text-foreground leading-none">
-                  {type === 'admin' ? 'Administrador' : currentShareholder.name.split(' ')[0]}
+                  {type === 'admin' ? 'Administrador' : currentShareholder.name}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {type === 'admin' ? 'Acesso total' : currentShareholder.group}
