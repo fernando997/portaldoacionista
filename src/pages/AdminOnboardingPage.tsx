@@ -76,7 +76,8 @@ function getMissing(r: OnboardingRequest) {
 }
 
 export default function AdminOnboardingPage() {
-  const { session } = useAuth();
+  const { session, role } = useAuth();
+  const isViewer = role === 'viewer';
   const [requests, setRequests] = useState<OnboardingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -213,9 +214,11 @@ export default function AdminOnboardingPage() {
           <p className="text-sm font-medium text-muted-foreground">Administração</p>
           <h1 className="section-title mb-0">Links de Onboarding</h1>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-2">
-          <Plus className="w-4 h-4" /> Gerar Link
-        </Button>
+        {!isViewer && (
+          <Button onClick={() => setShowCreate(true)} className="gap-2">
+            <Plus className="w-4 h-4" /> Gerar Link
+          </Button>
+        )}
       </div>
 
       {/* KPI Cards */}
@@ -353,14 +356,16 @@ export default function AdminOnboardingPage() {
                             <><Copy className="w-4 h-4" /> Link</>
                           )}
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteTarget(r)}
-                          className="gap-1.5 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {!isViewer && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteTarget(r)}
+                            className="gap-1.5 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -491,7 +496,7 @@ export default function AdminOnboardingPage() {
                     <Copy className="w-4 h-4" />
                     {copiedId === selected.id ? 'Link Copiado!' : 'Copiar Link de Onboarding'}
                   </Button>
-                  {selected.status === 'completo' && (
+                  {selected.status === 'completo' && !isViewer && (
                     <Button
                       variant="outline"
                       className="w-full gap-2 text-primary border-primary/30 hover:bg-primary/5"

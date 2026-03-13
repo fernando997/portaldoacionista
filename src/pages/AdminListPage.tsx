@@ -12,7 +12,8 @@ import { Eye, Users, Pencil, Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminListPage() {
-  const { shareholders, viewAs } = useAuth();
+  const { shareholders, viewAs, role } = useAuth();
+  const isViewer = role === 'viewer';
   const navigate = useNavigate();
   const [editing, setEditing] = useState<Shareholder | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
@@ -130,9 +131,11 @@ export default function AdminListPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(s)} className="text-muted-foreground hover:text-foreground px-2">
-                        <Pencil className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Editar</span>
-                      </Button>
+                      {!isViewer && (
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(s)} className="text-muted-foreground hover:text-foreground px-2">
+                          <Pencil className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Editar</span>
+                        </Button>
+                      )}
                       <Button variant="ghost" size="sm" onClick={() => { viewAs(s.id); navigate('/'); }} className="text-muted-foreground hover:text-foreground px-2">
                         <Eye className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Ver como</span>
                       </Button>

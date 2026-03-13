@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 
-export type UserRole = 'shareholder' | 'admin' | null;
+export type UserRole = 'shareholder' | 'admin' | 'viewer' | null;
 
 export interface Shareholder {
   id: string;
@@ -59,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentShareholder, setCurrentShareholder] = useState<Shareholder>(defaultShareholder);
   const [shareholders, setShareholders] = useState<Shareholder[]>([]);
   const [isImpersonating, setIsImpersonating] = useState(false);
+  const isImpersonatingRef = useRef(false);
   const [adminSnapshot, setAdminSnapshot] = useState<Shareholder | null>(null);
 
   useEffect(() => {
@@ -67,6 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
+        // Não recarrega dados se estiver em modo impersonação (evita reset ao renovar token)
+        if (isImpersonatingRef.current) return;
         // Fetch profile and role using setTimeout to avoid deadlock
         setTimeout(async () => {
           await loadUserData(session.user.id);
@@ -125,12 +128,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (roles && roles.some(r => r.role === 'admin')) {
       setRole('admin');
+    } else if (roles && roles.some(r => r.role === 'moderator')) {
+      setRole('viewer');
     } else {
       setRole('shareholder');
     }
 
-    // Load all shareholders if admin
-    if (roles && roles.some(r => r.role === 'admin')) {
+    // Load all shareholders if admin or viewer
+    if (roles && (roles.some(r => r.role === 'admin') || roles.some(r => r.role === 'moderator'))) {
       const { data: allProfiles } = await supabase
         .from('profiles')
         .select('*');
@@ -175,17 +180,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const found = shareholders.find(s => s.id === id);
     if (found) {
       setAdminSnapshot(currentShareholder);
+      setPreImpersonationRole(role);
+      isImpersonatingRef.current = true;
       setIsImpersonating(true);
       setCurrentShareholder(found);
       setRole('shareholder');
     }
   };
 
+  const [preImpersonationRole, setPreImpersonationRole] = useState<UserRole>(null);
+
   const returnToAdmin = () => {
     if (adminSnapshot) setCurrentShareholder(adminSnapshot);
+    isImpersonatingRef.current = false;
     setIsImpersonating(false);
     setAdminSnapshot(null);
-    setRole('admin');
+    setRole(preImpersonationRole ?? 'admin');
+    setPreImpersonationRole(null);
   };
 
   return (

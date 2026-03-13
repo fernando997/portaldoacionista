@@ -1,4 +1,4 @@
-import { Users, UserPlus, LogOut, Shield, Link2, ChevronRight } from 'lucide-react';
+import { Users, UserPlus, LogOut, Shield, Link2, ChevronRight, Eye } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -10,10 +10,11 @@ import { Button } from '@/components/ui/button';
 import logo from '@/assets/logo.png';
 import { cn } from '@/lib/utils';
 
-const adminItems = [
-  { title: 'Acionistas',  url: '/admin',             icon: Users,    end: true },
-  { title: 'Cadastrar',   url: '/admin/cadastrar',    icon: UserPlus, end: true },
-  { title: 'Onboarding',  url: '/admin/onboarding',   icon: Link2,    end: true },
+const allAdminItems = [
+  { title: 'Acionistas',       url: '/admin',                  icon: Users,    end: true,  viewerVisible: true  },
+  { title: 'Cadastrar',        url: '/admin/cadastrar',         icon: UserPlus, end: true,  viewerVisible: false },
+  { title: 'Cadastrar Admin',  url: '/admin/cadastrar-admin',   icon: Shield,   end: true,  viewerVisible: false },
+  { title: 'Onboarding',       url: '/admin/onboarding',        icon: Link2,    end: true,  viewerVisible: true  },
 ];
 
 function NavItem({ title, url, icon: Icon, end = false }: { title: string; url: string; icon: any; end?: boolean }) {
@@ -61,7 +62,9 @@ function NavItem({ title, url, icon: Icon, end = false }: { title: string; url: 
 export function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const { logout } = useAuth();
+  const { logout, role } = useAuth();
+  const isViewer = role === 'viewer';
+  const navItems = isViewer ? allAdminItems.filter(i => i.viewerVisible) : allAdminItems;
 
   return (
     <Sidebar collapsible="icon">
@@ -91,12 +94,16 @@ export function AdminSidebar() {
         {!collapsed && (
           <div className="mx-3 mt-2 px-3 py-2 rounded-xl bg-[hsl(210,80%,52%)]/[0.12] border border-[hsl(210,80%,52%)]/[0.2] flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-[hsl(210,80%,60%)]" />
-            <Shield className="w-3 h-3 text-[hsl(210,80%,65%)] shrink-0" />
+            {isViewer ? (
+              <Eye className="w-3 h-3 text-[hsl(210,80%,65%)] shrink-0" />
+            ) : (
+              <Shield className="w-3 h-3 text-[hsl(210,80%,65%)] shrink-0" />
+            )}
             <span
               className="text-[10px] uppercase tracking-[0.1em] text-[hsl(210,80%,65%)]"
               style={{ fontFamily: 'var(--font-body)', fontWeight: 700 }}
             >
-              Painel Admin
+              {isViewer ? 'Visualizador' : 'Painel Admin'}
             </span>
           </div>
         )}
@@ -112,7 +119,7 @@ export function AdminSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu className="space-y-0.5">
-              {adminItems.map((item) => (
+              {navItems.map(({ viewerVisible: _, ...item }) => (
                 <NavItem key={item.url} {...item} />
               ))}
             </SidebarMenu>
@@ -129,23 +136,23 @@ export function AdminSidebar() {
           <div className="flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-white/[0.05] transition-colors duration-200 mb-1">
             <div className="relative shrink-0">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[hsl(220,60%,28%)] to-[hsl(220,60%,18%)] border border-white/[0.12] flex items-center justify-center shadow-md">
-                <span className="text-[12px] font-bold text-white/90" style={{ fontFamily: 'var(--font-body)' }}>A</span>
+                <span className="text-[12px] font-bold text-white/90" style={{ fontFamily: 'var(--font-body)' }}>{isViewer ? 'V' : 'A'}</span>
               </div>
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[hsl(210,80%,60%)] border-2 border-[hsl(220,60%,6%)] rounded-full" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[13px] font-semibold text-white/90 leading-tight" style={{ fontFamily: 'var(--font-body)' }}>
-                Administrador
+                {isViewer ? 'Visualizador' : 'Administrador'}
               </p>
               <p className="text-[11px] text-white/35 mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
-                Acesso total
+                {isViewer ? 'Somente leitura' : 'Acesso total'}
               </p>
             </div>
           </div>
         ) : (
           <div className="flex justify-center mb-1">
             <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-[hsl(220,60%,28%)] to-[hsl(220,60%,18%)] border border-white/[0.12] flex items-center justify-center">
-              <span className="text-[12px] font-bold text-white/90" style={{ fontFamily: 'var(--font-body)' }}>A</span>
+              <span className="text-[12px] font-bold text-white/90" style={{ fontFamily: 'var(--font-body)' }}>{isViewer ? 'V' : 'A'}</span>
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[hsl(210,80%,60%)] border-2 border-[hsl(220,60%,6%)] rounded-full" />
             </div>
           </div>
