@@ -19,6 +19,7 @@ import SecurityPage from "./pages/SecurityPage";
 import AdminListPage from "./pages/AdminListPage";
 import AdminRegisterPage from "./pages/AdminRegisterPage";
 import AdminRegisterViewerPage from "./pages/AdminRegisterViewerPage";
+import AdminRegisterAdminPage from "./pages/AdminRegisterAdminPage";
 import AdminOnboardingPage from "./pages/AdminOnboardingPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import NotFound from "./pages/NotFound";
@@ -48,13 +49,28 @@ function AppRoutes() {
 
   if (!role) return <LoginPage />;
 
+  if (role === 'superadmin') {
+    return (
+      <PortalLayout type="admin">
+        <Routes>
+          <Route path="/admin" element={<AdminListPage />} />
+          <Route path="/admin/cadastrar" element={<AdminRegisterPage />} />
+          <Route path="/admin/cadastrar-visualizador" element={<AdminRegisterViewerPage />} />
+          <Route path="/admin/cadastrar-admin" element={<AdminRegisterAdminPage />} />
+          <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
+        </Routes>
+      </PortalLayout>
+    );
+  }
+
   if (role === 'admin') {
     return (
       <PortalLayout type="admin">
         <Routes>
           <Route path="/admin" element={<AdminListPage />} />
           <Route path="/admin/cadastrar" element={<AdminRegisterPage />} />
-          <Route path="/admin/cadastrar-admin" element={<AdminRegisterViewerPage />} />
+          <Route path="/admin/cadastrar-visualizador" element={<AdminRegisterViewerPage />} />
           <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, ReactNod
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 
-export type UserRole = 'shareholder' | 'admin' | 'viewer' | null;
+export type UserRole = 'shareholder' | 'admin' | 'viewer' | 'superadmin' | null;
 
 export interface Shareholder {
   id: string;
@@ -126,7 +126,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select('role')
       .eq('user_id', userId);
 
-    if (roles && roles.some(r => r.role === 'admin')) {
+    if (roles && roles.some(r => r.role === 'superadmin')) {
+      setRole('superadmin');
+    } else if (roles && roles.some(r => r.role === 'admin')) {
       setRole('admin');
     } else if (roles && roles.some(r => r.role === 'moderator')) {
       setRole('viewer');
@@ -134,8 +136,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRole('shareholder');
     }
 
-    // Load all shareholders if admin or viewer
-    if (roles && (roles.some(r => r.role === 'admin') || roles.some(r => r.role === 'moderator'))) {
+    // Load all shareholders if admin, superadmin or viewer
+    if (roles && (roles.some(r => r.role === 'admin') || roles.some(r => r.role === 'superadmin') || roles.some(r => r.role === 'moderator'))) {
       const { data: allProfiles } = await supabase
         .from('profiles')
         .select('*');

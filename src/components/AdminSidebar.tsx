@@ -1,4 +1,4 @@
-import { Users, UserPlus, LogOut, Shield, Link2, ChevronRight, Eye } from 'lucide-react';
+import { Users, UserPlus, LogOut, Shield, ShieldCheck, Link2, ChevronRight, Eye } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -11,10 +11,11 @@ import logo from '@/assets/logo.png';
 import { cn } from '@/lib/utils';
 
 const allAdminItems = [
-  { title: 'Acionistas',       url: '/admin',                  icon: Users,    end: true,  viewerVisible: true  },
-  { title: 'Cadastrar',        url: '/admin/cadastrar',         icon: UserPlus, end: true,  viewerVisible: false },
-  { title: 'Cadastrar Admin',  url: '/admin/cadastrar-admin',   icon: Shield,   end: true,  viewerVisible: false },
-  { title: 'Onboarding',       url: '/admin/onboarding',        icon: Link2,    end: true,  viewerVisible: true  },
+  { title: 'Acionistas',          url: '/admin',                         icon: Users,       end: true,  viewerVisible: true,  superadminOnly: false },
+  { title: 'Cadastrar',           url: '/admin/cadastrar',                icon: UserPlus,    end: true,  viewerVisible: false, superadminOnly: false },
+  { title: 'Cad. Visualizador',   url: '/admin/cadastrar-visualizador',   icon: Eye,         end: true,  viewerVisible: false, superadminOnly: false },
+  { title: 'Cadastrar Admin',     url: '/admin/cadastrar-admin',          icon: ShieldCheck, end: true,  viewerVisible: false, superadminOnly: true  },
+  { title: 'Onboarding',          url: '/admin/onboarding',               icon: Link2,       end: true,  viewerVisible: true,  superadminOnly: false },
 ];
 
 function NavItem({ title, url, icon: Icon, end = false }: { title: string; url: string; icon: any; end?: boolean }) {
@@ -64,7 +65,12 @@ export function AdminSidebar() {
   const collapsed = state === 'collapsed';
   const { logout, role } = useAuth();
   const isViewer = role === 'viewer';
-  const navItems = isViewer ? allAdminItems.filter(i => i.viewerVisible) : allAdminItems;
+  const isSuperadmin = role === 'superadmin';
+  const navItems = allAdminItems.filter(i => {
+    if (isViewer) return i.viewerVisible;
+    if (isSuperadmin) return true;
+    return !i.superadminOnly;
+  });
 
   return (
     <Sidebar collapsible="icon">
@@ -96,6 +102,8 @@ export function AdminSidebar() {
             <div className="w-1.5 h-1.5 rounded-full bg-[hsl(210,80%,60%)]" />
             {isViewer ? (
               <Eye className="w-3 h-3 text-[hsl(210,80%,65%)] shrink-0" />
+            ) : isSuperadmin ? (
+              <ShieldCheck className="w-3 h-3 text-[hsl(210,80%,65%)] shrink-0" />
             ) : (
               <Shield className="w-3 h-3 text-[hsl(210,80%,65%)] shrink-0" />
             )}
@@ -103,7 +111,7 @@ export function AdminSidebar() {
               className="text-[10px] uppercase tracking-[0.1em] text-[hsl(210,80%,65%)]"
               style={{ fontFamily: 'var(--font-body)', fontWeight: 700 }}
             >
-              {isViewer ? 'Visualizador' : 'Painel Admin'}
+              {isViewer ? 'Visualizador' : isSuperadmin ? 'Super Admin' : 'Painel Admin'}
             </span>
           </div>
         )}
@@ -119,7 +127,7 @@ export function AdminSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu className="space-y-0.5">
-              {navItems.map(({ viewerVisible: _, ...item }) => (
+              {navItems.map(({ viewerVisible: _, superadminOnly: __, ...item }) => (
                 <NavItem key={item.url} {...item} />
               ))}
             </SidebarMenu>
@@ -136,23 +144,23 @@ export function AdminSidebar() {
           <div className="flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-white/[0.05] transition-colors duration-200 mb-1">
             <div className="relative shrink-0">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[hsl(220,60%,28%)] to-[hsl(220,60%,18%)] border border-white/[0.12] flex items-center justify-center shadow-md">
-                <span className="text-[12px] font-bold text-white/90" style={{ fontFamily: 'var(--font-body)' }}>{isViewer ? 'V' : 'A'}</span>
+                <span className="text-[12px] font-bold text-white/90" style={{ fontFamily: 'var(--font-body)' }}>{isViewer ? 'V' : isSuperadmin ? 'S' : 'A'}</span>
               </div>
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[hsl(210,80%,60%)] border-2 border-[hsl(220,60%,6%)] rounded-full" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[13px] font-semibold text-white/90 leading-tight" style={{ fontFamily: 'var(--font-body)' }}>
-                {isViewer ? 'Visualizador' : 'Administrador'}
+                {isViewer ? 'Visualizador' : isSuperadmin ? 'Super Admin' : 'Administrador'}
               </p>
               <p className="text-[11px] text-white/35 mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
-                {isViewer ? 'Somente leitura' : 'Acesso total'}
+                {isViewer ? 'Somente leitura' : isSuperadmin ? 'Acesso máximo' : 'Acesso total'}
               </p>
             </div>
           </div>
         ) : (
           <div className="flex justify-center mb-1">
             <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-[hsl(220,60%,28%)] to-[hsl(220,60%,18%)] border border-white/[0.12] flex items-center justify-center">
-              <span className="text-[12px] font-bold text-white/90" style={{ fontFamily: 'var(--font-body)' }}>{isViewer ? 'V' : 'A'}</span>
+              <span className="text-[12px] font-bold text-white/90" style={{ fontFamily: 'var(--font-body)' }}>{isViewer ? 'V' : isSuperadmin ? 'S' : 'A'}</span>
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[hsl(210,80%,60%)] border-2 border-[hsl(220,60%,6%)] rounded-full" />
             </div>
           </div>
