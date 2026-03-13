@@ -24,7 +24,7 @@ function StateScreen({ icon, iconBg, iconColor, title, description }: {
   const Icon = icon;
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[hsl(210,20%,97%)] p-6">
-      <img src={logo} alt="Modo Corre" className="h-12 w-auto object-contain mb-10 opacity-80" />
+      <img src={logo} alt="Modo Corre" className="h-36 w-auto object-contain mb-10 opacity-80" />
       <div className={`w-20 h-20 rounded-3xl ${iconBg} flex items-center justify-center mb-6 shadow-md`}>
         <Icon className={`w-9 h-9 ${iconColor}`} />
       </div>
@@ -372,7 +372,7 @@ export default function OnboardingPage() {
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-[hsl(210,20%,97%)]">
       <div className="flex flex-col items-center gap-4">
-        <img src={logo} alt="Modo Corre" className="h-12 w-auto object-contain opacity-70" />
+        <img src={logo} alt="Modo Corre" className="h-36 w-auto object-contain opacity-70" />
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     </div>
@@ -397,7 +397,7 @@ export default function OnboardingPage() {
       {/* Header */}
       <div className="bg-gradient-to-r from-[hsl(220,60%,14%)] to-[hsl(220,60%,20%)] sticky top-0 z-10 shadow-md">
         <div className="max-w-xl mx-auto px-4 py-4 flex items-center justify-between">
-          <img src={logo} alt="Modo Corre" className="h-10 w-auto object-contain brightness-0 invert" />
+          <img src={logo} alt="Modo Corre" className="h-[7.5rem] w-auto object-contain brightness-0 invert" />
           <div className="text-right">
             <p className="text-[10px] text-white/40 uppercase tracking-widest">Pedido</p>
             <p className="text-sm font-mono font-bold text-white/90">{pedidoId}</p>
