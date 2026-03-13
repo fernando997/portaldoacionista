@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Lock, Mail, KeyRound, Loader2, Shield, ChevronRight, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { Lock, Mail, KeyRound, Loader2, Shield, ChevronRight, CheckCircle2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -131,39 +131,47 @@ export default function LoginPage() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">E-mail</label>
+                <label htmlFor="email" className="text-sm font-medium text-foreground">E-mail</label>
                 <div className="relative group">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-accent" />
                   <Input
+                    id="email"
                     type="email"
                     placeholder="seu@email.com"
                     value={email}
+                    autoComplete="email"
+                    aria-invalid={!!fieldError}
+                    aria-describedby={fieldError ? 'form-error' : undefined}
                     onChange={(e) => { setEmail(e.target.value); setFieldError(''); }}
-                    className="pl-11 h-11 text-sm rounded-xl border-input bg-muted/40 focus:bg-white transition-colors"
+                    className="pl-11 h-11 text-sm rounded-xl border-input bg-muted/40 focus:bg-white transition-colors aria-[invalid=true]:border-destructive"
                     required
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Senha</label>
+                <label htmlFor="password" className="text-sm font-medium text-foreground">Senha</label>
                 <div className="relative group">
                   <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-accent" />
                   <Input
+                    id="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={password}
+                    autoComplete="current-password"
+                    aria-invalid={!!fieldError}
+                    aria-describedby={fieldError ? 'form-error' : undefined}
                     onChange={(e) => { setPassword(e.target.value); setFieldError(''); }}
-                    className="pl-11 pr-11 h-11 text-sm rounded-xl border-input bg-muted/40 focus:bg-white transition-colors"
+                    className="pl-11 pr-11 h-11 text-sm rounded-xl border-input bg-muted/40 focus:bg-white transition-colors aria-[invalid=true]:border-destructive"
                     required
                   />
                   <button
                     type="button"
-                    tabIndex={-1}
+                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                     onClick={() => setShowPassword(v => !v)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -172,8 +180,8 @@ export default function LoginPage() {
 
               {/* Inline error */}
               {fieldError && (
-                <p className="text-xs text-destructive font-medium flex items-center gap-1.5">
-                  <span className="w-1 h-1 rounded-full bg-destructive inline-block" />
+                <p id="form-error" role="alert" className="text-xs text-destructive font-medium flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                   {fieldError}
                 </p>
               )}
@@ -182,10 +190,12 @@ export default function LoginPage() {
                 type="submit"
                 className="w-full h-11 text-sm font-semibold rounded-xl gradient-accent shadow-md shadow-accent/20 hover:shadow-lg hover:shadow-accent/30 hover:-translate-y-0.5 transition-all duration-200 group mt-2"
                 disabled={loading}
+                aria-busy={loading}
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Entrar no Portal
-                {!loading && <ChevronRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-0.5" />}
+                {loading
+                  ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Entrando...</>
+                  : <>Entrar no Portal<ChevronRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-0.5" /></>
+                }
               </Button>
             </form>
 
