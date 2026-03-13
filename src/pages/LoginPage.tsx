@@ -50,7 +50,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 flex flex-col justify-between h-full">
           {/* Logo */}
-          <img src={logo} alt="Modo Corre" className="h-16 w-auto object-contain shrink-0 brightness-0 invert opacity-90 animate-fade-in" />
+          <img src={logo} alt="Modo Corre" className="h-64 w-auto object-contain shrink-0 brightness-0 invert opacity-90 animate-fade-in" />
 
           {/* Main copy */}
           <div className="space-y-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
@@ -111,7 +111,7 @@ export default function LoginPage() {
 
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8 space-y-3">
-            <img src={logo} alt="Modo Corre" className="h-20 w-auto object-contain shrink-0 mx-auto" />
+            <img src={logo} alt="Modo Corre" className="h-32 w-auto object-contain shrink-0 mx-auto" />
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted border">
               <Shield className="w-3.5 h-3.5 text-accent" />
               <span className="text-xs font-medium text-muted-foreground">Portal do Acionista</span>
