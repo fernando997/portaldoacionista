@@ -110,13 +110,13 @@ export function ShareholderSidebar() {
 
         {/* Logo */}
         <div className={cn(
-          'relative flex items-center shrink-0',
-          collapsed ? 'justify-center px-2 py-4' : 'px-5 py-4',
+          'relative flex items-center justify-center shrink-0',
+          collapsed ? 'px-2 py-4' : 'px-5 py-5',
         )}>
           <img
             src={logo}
             alt="Modo Corre"
-            className={cn('brightness-0 invert transition-all duration-300 object-contain', collapsed ? 'h-7 w-auto' : 'h-11 w-auto')}
+            className={cn('brightness-0 invert transition-all duration-300 object-contain mx-auto', collapsed ? 'h-14 w-auto' : 'h-24 w-auto')}
           />
           {/* Bottom separator gradient */}
           <div className="absolute bottom-0 left-3 right-3 h-px bg-gradient-to-r from-transparent via-white/[0.1] to-transparent" />

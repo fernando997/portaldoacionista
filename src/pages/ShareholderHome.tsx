@@ -310,7 +310,7 @@ export default function ShareholderHome() {
                 {greeting},
               </p>
               <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight" style={{ fontFamily: 'var(--font-body)' }}>
-                {firstName}
+                {fullName}
               </h1>
               {currentShareholder.group && (
                 <p className="text-xs text-white/40" style={{ fontFamily: 'var(--font-body)', fontWeight: 500 }}>
