@@ -83,6 +83,7 @@ export default function ExtratoPage() {
   const [pageSize, setPageSize]       = useState(100);
   const [loading, setLoading]         = useState(false);
   const [searched, setSearched]       = useState(false);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
   const [tipoFiltro, setTipoFiltro]   = useState<'todos' | 'receita' | 'despesa'>('todos');
   const [sortOrder, setSortOrder]     = useState<'desc' | 'asc'>('desc');
 
@@ -157,6 +158,8 @@ export default function ExtratoPage() {
   }
 
   async function downloadPDF() {
+    setGeneratingPDF(true);
+    try {
     const doc = new jsPDF({ orientation: 'landscape' });
 
     // Logo — carrega via fetch para preservar qualidade sem compressão canvas
@@ -250,10 +253,19 @@ export default function ExtratoPage() {
     });
 
     doc.save(`extrato_${startDate}_${finishDate}.pdf`);
+    } finally {
+      setGeneratingPDF(false);
+    }
   }
 
   return (
     <div className="page-container">
+      {generatingPDF && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-50 gap-4">
+          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          <p className="text-base font-semibold text-foreground">Gerando extrato...</p>
+        </div>
+      )}
 
       {/* Header */}
       <div className="animate-fade-in flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
