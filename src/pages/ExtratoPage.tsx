@@ -24,7 +24,7 @@ interface Transaction {
   balance?: number;
 }
 
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200, 500];
 
 const CREDIT_TYPES = new Set([
   'CREDIT', 'PAYMENT_RECEIVED', 'RECEIVED', 'TRANSFER_RECEIVED',
