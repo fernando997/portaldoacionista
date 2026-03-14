@@ -3,7 +3,7 @@ import {
   TrendingUp, Bike, DollarSign, PieChart, Target,
   ArrowUpRight, Wrench, Receipt, CalendarDays,
   FileText, Map, BarChart3, FolderOpen, ChevronRight,
-  TrendingDown, Activity,
+  TrendingDown, Activity, FileCheck2, FileMinus2, PlusCircle,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -254,11 +254,14 @@ export default function ShareholderHome() {
       .catch(err => console.error('Erro frota:', err));
   }, [currentShareholder.idLocadora]);
 
-  const frotaTotal     = poolData?.frota_total    != null ? Number(poolData.frota_total)    : null;
-  const frotaLocada    = poolData?.frota_locada   != null ? Number(poolData.frota_locada)   : null;
-  const receitaBruta   = poolData?.receita_bruta  != null ? Number(poolData.receita_bruta)  : null;
-  const receitaFaturada= poolData?.receita_faturada != null ? Number(poolData.receita_faturada) : null;
-  const despesas       = poolData?.despesas       != null ? Number(poolData.despesas)       : null;
+  const frotaTotal      = poolData?.frota_total       != null ? Number(poolData.frota_total)       : null;
+  const frotaLocada     = poolData?.frota_locada      != null ? Number(poolData.frota_locada)      : null;
+  const receitaBruta    = poolData?.receita_bruta     != null ? Number(poolData.receita_bruta)     : null;
+  const receitaFaturada = poolData?.receita_faturada  != null ? Number(poolData.receita_faturada)  : null;
+  const despesas        = poolData?.despesas          != null ? Number(poolData.despesas)          : null;
+  const contratos       = poolData?.contratos         != null ? Number(poolData.contratos)         : null;
+  const fechamentContratos = poolData?.fechament_contratos != null ? Number(poolData.fechament_contratos) : null;
+  const novosVeiculos   = poolData?.novos_veiculos    != null ? Number(poolData.novos_veiculos)    : null;
   const receitaTotal   = receitaBruta != null && receitaFaturada != null ? receitaBruta + receitaFaturada : null;
   const participacao   =
     clientMotos != null && frotaTotal != null && frotaTotal > 0
@@ -480,8 +483,35 @@ export default function ShareholderHome() {
         </div>
       </section>
 
-      {/* ── Acesso Rápido ────────────────────────────────────── */}
+      {/* ── Contratos & Veículos ─────────────────────────────── */}
       <section className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+        <SectionHeader label="Contratos & Veículos do Mês" icon={FileText} />
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <KpiCard
+            label="Novos Contratos"
+            value={loadingPool ? null : (contratos != null ? `${contratos}` : 'Indisponível')}
+            icon={FileCheck2}
+            highlight="accent"
+            sub="Contratos abertos no mês"
+          />
+          <KpiCard
+            label="Contratos Fechados"
+            value={loadingPool ? null : (fechamentContratos != null ? `${fechamentContratos}` : 'Indisponível')}
+            icon={FileMinus2}
+            highlight="warning"
+            sub="Encerramentos no mês"
+          />
+          <KpiCard
+            label="Novos Veículos"
+            value={loadingPool ? null : (novosVeiculos != null ? `${novosVeiculos} motos` : 'Indisponível')}
+            icon={PlusCircle}
+            sub="Entradas no grupo"
+          />
+        </div>
+      </section>
+
+      {/* ── Acesso Rápido ────────────────────────────────────── */}
+      <section className="animate-fade-in" style={{ animationDelay: '0.25s' }}>
         <SectionHeader label="Acesso Rápido" icon={ChevronRight} />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <QuickLink to="/extrato"    icon={BarChart3}   label="Extrato"    sub="Histórico de transações" />
