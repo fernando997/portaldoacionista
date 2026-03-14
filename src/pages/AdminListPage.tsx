@@ -8,16 +8,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Eye, Users, Pencil, Loader2, Save } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Eye, Users, Pencil, Loader2, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminListPage() {
   const { shareholders, viewAs, role } = useAuth();
   const isViewer = role === 'viewer';
+  const isSuperAdmin = role === 'superadmin';
   const navigate = useNavigate();
   const [editing, setEditing] = useState<Shareholder | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Shareholder | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const openEdit = (s: Shareholder) => {
     setEditing(s);
@@ -88,6 +92,37 @@ export default function AdminListPage() {
     window.location.reload();
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${anonKey}`,
+        'apikey': anonKey,
+      },
+      body: JSON.stringify({ user_id: deleteTarget.user_id }),
+    });
+    const data = await res.json();
+    setDeleting(false);
+
+    if (data?.error) {
+      toast.error(data.error);
+      return;
+    }
+    if (!res.ok) {
+      toast.error(`Erro ${res.status}: ${JSON.stringify(data)}`);
+      return;
+    }
+
+    toast.success(`Usuário ${deleteTarget.name} excluído com sucesso.`);
+    setDeleteTarget(null);
+    window.location.reload();
+  };
+
   return (
     <div className="page-container">
       <div className="flex items-center justify-between animate-fade-in">
@@ -139,6 +174,11 @@ export default function AdminListPage() {
                       <Button variant="ghost" size="sm" onClick={() => { viewAs(s.id); navigate('/'); }} className="text-muted-foreground hover:text-foreground px-2">
                         <Eye className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Ver como</span>
                       </Button>
+                      {isSuperAdmin && (
+                        <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(s)} className="text-destructive hover:text-destructive hover:bg-destructive/10 px-2">
+                          <Trash2 className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Excluir</span>
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -216,6 +256,28 @@ export default function AdminListPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <strong>{deleteTarget?.name}</strong>? Esta ação é irreversível e removerá todos os dados do usuário.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
