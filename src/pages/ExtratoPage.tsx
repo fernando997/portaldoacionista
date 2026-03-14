@@ -133,10 +133,6 @@ export default function ExtratoPage() {
       if (tipoFiltro === 'receita') return  isCredit(t.type);
       if (tipoFiltro === 'despesa') return !isCredit(t.type);
       return true;
-    })
-    .sort((a, b) => {
-      const diff = new Date(a.date).getTime() - new Date(b.date).getTime();
-      return sortOrder === 'asc' ? diff : -diff;
     });
 
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -316,7 +312,7 @@ export default function ExtratoPage() {
             </div>
             <div className="space-y-1.5 col-span-1">
               <Label className="text-sm font-semibold">Ordenar</Label>
-              <Select value={sortOrder} onValueChange={(v: any) => { setSortOrder(v); }}>
+              <Select value={sortOrder} onValueChange={(v: any) => { setSortOrder(v); if (searched) fetchExtrato(0, pageSize, v); }}>
                 <SelectTrigger className="h-10 min-w-[160px]">
                   <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
                   <SelectValue />
