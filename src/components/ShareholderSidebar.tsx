@@ -1,5 +1,5 @@
 import {
-  Home, Bike, FileText, BarChart3, ShieldCheck, LogOut,
+  Home, Bike, FileText, BarChart3, UserCircle, LogOut,
   Map, ScrollText, FileSignature, ArrowLeftCircle, ChevronRight,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
@@ -40,7 +40,7 @@ const NAV_GROUPS = [
     items: [
       { title: 'Documentos', url: '/documentos', icon: FileText },
       { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
-      { title: 'Segurança', url: '/seguranca', icon: ShieldCheck },
+      { title: 'Minha Conta', url: '/seguranca', icon: UserCircle },
     ],
   },
 ];
