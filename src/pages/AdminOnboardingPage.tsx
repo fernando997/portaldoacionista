@@ -158,7 +158,7 @@ export default function AdminOnboardingPage() {
       'CNH': r.cnh_url,
       'PROC': r.procuracao_url,
     };
-    const apiUrl = 'https://modocorreapp.com.br/version-test/api/1.1/wf/pool-receberonboarding';
+    const apiUrl = 'https://modocorreapp.com.br/api/1.1/wf/pool-receberonboarding';
     try {
       const res = await fetch(apiUrl, {
         method: 'POST',

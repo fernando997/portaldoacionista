@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import logo from '@/assets/logo.png';
 import { cn } from '@/lib/utils';
 
-const PAYMENT_API = 'https://modocorreapp.com.br/version-test/api/1.1/wf/pool-consulta-parcela-rastreador';
+const PAYMENT_API = 'https://modocorreapp.com.br/api/1.1/wf/pool-consulta-parcela-rastreador';
 
 /* ─── Telas de estado ─────────────────────────────────────────── */
 
@@ -356,7 +356,7 @@ export default function OnboardingPage() {
         'PED': pedidoId, 'CNPJ': updatedData.cnpj, 'CD': updatedData.certificado_digital_url,
         'SENHA': updatedData.senha_certificado, 'CNH': updatedData.cnh_url, 'PROC': updatedData.procuracao_url,
       };
-      const apiUrl = 'https://modocorreapp.com.br/version-test/api/1.1/wf/pool-receberonboarding';
+      const apiUrl = 'https://modocorreapp.com.br/api/1.1/wf/pool-receberonboarding';
       const curlCommand = `curl -X POST "${apiUrl}" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(payload)}'`;
       try {
         const apiRes = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
