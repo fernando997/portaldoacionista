@@ -185,16 +185,27 @@ export default function OnboardingPage() {
 
   const fetchPaymentUrl = async (pedido: string, reqId: string) => {
     setLoadingPayment(true);
+    const requestBody = { pedido };
+    console.group('[Payment API] fetchPaymentUrl');
+    console.log('URL:', PAYMENT_API);
+    console.log('Request body:', requestBody);
     try {
       const res = await fetch(PAYMENT_API, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pedido }),
+        body: JSON.stringify(requestBody),
       });
-      const data = await res.json();
+      console.log('HTTP status:', res.status, res.statusText);
+      const rawText = await res.text();
+      console.log('Raw response:', rawText);
+      let data: any = null;
+      try { data = JSON.parse(rawText); } catch { console.warn('Resposta não é JSON válido'); }
+      console.log('Parsed response:', data);
       const parcela = data?.response?.parcela ?? {};
+      console.log('parcela:', parcela);
       const url = parcela?.url ?? null;
       const status = parcela?.status ?? 'GERADO';
       const descricao = parcela?.descricao ?? null;
+      console.log('url:', url, '| status:', status, '| descricao:', descricao);
       if (descricao) setPaymentDescricao(descricao);
       if (url) {
         setPaymentUrl(url);
@@ -203,10 +214,13 @@ export default function OnboardingPage() {
         await supabase.from('onboarding_requests')
           .update({ payment_url: url, payment_status: newStatus, payment_descricao: descricao ?? null } as any)
           .eq('id', reqId);
+      } else {
+        console.warn('Nenhuma URL de pagamento retornada. Verifique se o campo "url" existe em data.response.parcela');
       }
     } catch (err) {
       console.error('[payment API] erro:', err);
     } finally {
+      console.groupEnd();
       setLoadingPayment(false);
     }
   };
