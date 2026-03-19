@@ -400,7 +400,7 @@ export default function OnboardingPage() {
           <img src={logo} alt="Modo Corre" className="h-[7.5rem] w-auto object-contain brightness-0 invert" />
           <div className="text-right">
             <p className="text-[10px] text-white/40 uppercase tracking-widest">Pedido</p>
-            <p className="text-sm font-mono font-bold text-white/90">{pedidoId}</p>
+            <p className="text-sm font-bold text-white/90">{paymentDescricao || pedidoId}</p>
           </div>
         </div>
         {/* Progress bar */}
