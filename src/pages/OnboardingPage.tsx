@@ -147,6 +147,7 @@ export default function OnboardingPage() {
   const [invalid, setInvalid] = useState(false);
   const [requestId, setRequestId] = useState('');
   const [pedidoId, setPedidoId] = useState('');
+  const [clienteNome, setClienteNome] = useState('');
 
   const [cnpj, setCnpj] = useState('');
   const [senhaCertificado, setSenhaCertificado] = useState('');
@@ -219,6 +220,7 @@ export default function OnboardingPage() {
         if (data.status === 'completo') { setCompleted(true); setLoading(false); return; }
         setRequestId(data.id);
         setPedidoId(data.pedido_id);
+        if ((data as any).cliente) setClienteNome((data as any).cliente);
         if (data.cnpj) setCnpj(data.cnpj);
         if (data.senha_certificado) setSenhaCertificado(data.senha_certificado);
         if (data.certificado_digital_url) setSavedCertificadoUrl(data.certificado_digital_url);
@@ -400,7 +402,7 @@ export default function OnboardingPage() {
           <img src={logo} alt="Modo Corre" className="h-[7.5rem] w-auto object-contain brightness-0 invert" />
           <div className="text-right">
             <p className="text-[10px] text-white/40 uppercase tracking-widest">Pedido</p>
-            <p className="text-sm font-bold text-white/90">{paymentDescricao || pedidoId}</p>
+            <p className="text-sm font-bold text-white/90">{clienteNome || pedidoId}</p>
           </div>
         </div>
         {/* Progress bar */}
