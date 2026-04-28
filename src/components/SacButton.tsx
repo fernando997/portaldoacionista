@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { MessageCircleQuestion, X, Send, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+
+const RESEND_API_KEY = 're_N9hpcKvL_2THW7xD9PR1smoefGUuaiZ7z';
 
 export default function SacButton() {
   const { currentShareholder } = useAuth();
@@ -15,19 +16,73 @@ export default function SacButton() {
     e.preventDefault();
     if (!question.trim()) return;
 
+    const locadoraName = currentShareholder.group || 'Não identificada';
+    const userName = currentShareholder.name || 'Não informado';
+    const userEmail = currentShareholder.email || '';
+
+    const html = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a1a;">
+  <div style="background: linear-gradient(135deg, #1a3a2a, #2d6a4f); padding: 28px 32px; border-radius: 12px 12px 0 0;">
+    <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 700;">Novo Ticket de SAC</h1>
+    <p style="margin: 6px 0 0; color: #a8d5b5; font-size: 14px;">Portal do Acionista — Modo Corre Invest</p>
+  </div>
+  <div style="background: #f9fafb; padding: 28px 32px; border: 1px solid #e5e7eb; border-top: none;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; width: 40%;">
+          <span style="font-size: 12px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Cliente</span>
+        </td>
+        <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+          <span style="font-size: 14px; color: #111827; font-weight: 500;">${userName}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+          <span style="font-size: 12px; color: #6b7280; text-transform: uppercase; font-weight: 600;">E-mail</span>
+        </td>
+        <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+          <span style="font-size: 14px; color: #111827;">${userEmail || 'Não informado'}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 10px 0;">
+          <span style="font-size: 12px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Locadora</span>
+        </td>
+        <td style="padding: 10px 0;">
+          <span style="font-size: 14px; color: #111827; font-weight: 600;">${locadoraName}</span>
+        </td>
+      </tr>
+    </table>
+    <div style="margin-top: 24px;">
+      <p style="font-size: 12px; color: #6b7280; text-transform: uppercase; font-weight: 600; margin-bottom: 10px;">Dúvida / Mensagem</p>
+      <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px;">
+        <p style="margin: 0; font-size: 14px; color: #374151; line-height: 1.6; white-space: pre-wrap;">${question.trim()}</p>
+      </div>
+    </div>
+  </div>
+  <div style="background: #f3f4f6; padding: 16px 32px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
+    <p style="margin: 0; font-size: 12px; color: #9ca3af; text-align: center;">Ticket enviado automaticamente pelo Portal do Acionista</p>
+  </div>
+</div>`;
+
     setLoading(true);
     try {
-      const { error } = await supabase.functions.invoke('send-sac-email', {
-        body: {
-          userName: currentShareholder.name,
-          userEmail: currentShareholder.email,
-          locadoraName: currentShareholder.group,
-          idLocadora: currentShareholder.idLocadora,
-          question: question.trim(),
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          from: 'onboarding@resend.dev',
+          to: ['suporte@modocorreinvest.com.br'],
+          reply_to: userEmail || undefined,
+          subject: `[SAC] ${userName} — ${locadoraName}`,
+          html,
+        }),
       });
 
-      if (error) throw error;
+      if (!res.ok) throw new Error('Falha ao enviar');
 
       toast({
         title: 'Ticket enviado com sucesso!',
