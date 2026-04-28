@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Bell, Home, Bike, Map, ScrollText, FileSignature, BarChart3, FileText, ShieldCheck, Users, UserPlus, Link2 } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import { useLocation } from 'react-router-dom';
+import SacButton from '@/components/SacButton';
 
 interface PortalLayoutProps {
   children: ReactNode;
@@ -143,6 +144,8 @@ export default function PortalLayout({ children, type }: PortalLayoutProps) {
           <main className="flex-1 overflow-auto bg-background">{children}</main>
         </div>
       </div>
+
+      <SacButton />
     </SidebarProvider>
   );
 }
