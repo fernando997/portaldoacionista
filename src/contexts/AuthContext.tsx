@@ -2,7 +2,9 @@ import React, { createContext, useContext, useState, useEffect, useRef, ReactNod
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 
-export type UserRole = 'shareholder' | 'admin' | 'viewer' | 'superadmin' | null;
+export type UserRole = 'shareholder' | 'admin' | 'viewer' | 'superadmin' | 'vendedor' | 'sac' | 'suporte' | null;
+
+export const INTERNAL_ROLES: UserRole[] = ['superadmin', 'admin', 'viewer', 'vendedor', 'sac', 'suporte'];
 
 export interface Shareholder {
   id: string;
@@ -17,7 +19,10 @@ export interface Shareholder {
   totalMotos: number;
   investedValue: number;
   status: 'Ativo' | 'Inativo';
+  internalRole?: string; // definido somente para equipe interna
 }
+
+const INTERNAL_DB_ROLES = ['admin', 'superadmin', 'moderator', 'vendedor', 'sac', 'suporte'];
 
 interface AuthContextType {
   role: UserRole;
@@ -132,31 +137,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRole('admin');
     } else if (roles && roles.some(r => r.role === 'moderator')) {
       setRole('viewer');
+    } else if (roles && roles.some(r => r.role === 'vendedor')) {
+      setRole('vendedor');
+    } else if (roles && roles.some(r => r.role === 'sac')) {
+      setRole('sac');
+    } else if (roles && roles.some(r => r.role === 'suporte')) {
+      setRole('suporte');
     } else {
       setRole('shareholder');
     }
 
-    // Load all shareholders if admin, superadmin or viewer
-    if (roles && (roles.some(r => r.role === 'admin') || roles.some(r => r.role === 'superadmin') || roles.some(r => r.role === 'moderator'))) {
-      const { data: allProfiles } = await supabase
-        .from('profiles')
-        .select('*');
+    const internalDbRoles = ['admin', 'superadmin', 'moderator', 'vendedor', 'sac', 'suporte'];
+    // Load all shareholders if internal user
+    if (roles && roles.some(r => internalDbRoles.includes(r.role))) {
+      const [{ data: allProfiles }, { data: allRoles }] = await Promise.all([
+        supabase.from('profiles').select('*'),
+        supabase.from('user_roles').select('user_id, role'),
+      ]);
 
       if (allProfiles) {
-        setShareholders(allProfiles.map(p => ({
-          id: p.id,
-          user_id: p.user_id,
-          name: p.name,
-          email: p.email || '',
-          group: p.group_name || 'Grupo Modo Corre',
-          idGrupo: p.id_grupo || '',
-          idLocadora: p.id_locadora || '',
-          idPedido: (p as any).id_pedido || '',
-          participationPercent: Number(p.participation_percent) || 0,
-          totalMotos: p.total_motos || 0,
-          investedValue: Number(p.invested_value) || 0,
-          status: (p.status as 'Ativo' | 'Inativo') || 'Ativo',
-        })));
+        setShareholders(allProfiles.map(p => {
+          const profileRoles = (allRoles || []).filter(r => r.user_id === p.user_id).map(r => r.role);
+          const internalRole = profileRoles.find(r => INTERNAL_DB_ROLES.includes(r));
+          return {
+            id: p.id,
+            user_id: p.user_id,
+            name: p.name,
+            email: p.email || '',
+            group: p.group_name || 'Grupo Modo Corre',
+            idGrupo: p.id_grupo || '',
+            idLocadora: p.id_locadora || '',
+            idPedido: (p as any).id_pedido || '',
+            participationPercent: Number(p.participation_percent) || 0,
+            totalMotos: p.total_motos || 0,
+            investedValue: Number(p.invested_value) || 0,
+            status: (p.status as 'Ativo' | 'Inativo') || 'Ativo',
+            internalRole: internalRole,
+          };
+        }));
       }
     }
   };

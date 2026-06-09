@@ -4,24 +4,33 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DocItem {
   id: number;
   nome: string;
   tipo: string;
   data: string;
-  apiKey: string; // key returned from API
+  apiKey: string;
   fileUrl?: string;
+  origem?: 'admin' | 'onboarding' | 'api';
 }
 
 const documentsList: DocItem[] = [
-  { id: 1, nome: 'Pré Contrato', tipo: 'Contrato', data: '', apiKey: 'precontrato' },
-  { id: 2, nome: 'Contrato', tipo: 'Contrato', data: '', apiKey: 'contrato' },
-  { id: 3, nome: 'CNPJ', tipo: 'Documento', data: '', apiKey: 'cnpj' },
+  { id: 1, nome: 'Pré Contrato',       tipo: 'Contrato',     data: '', apiKey: 'precontrato' },
+  { id: 2, nome: 'Contrato',           tipo: 'Contrato',     data: '', apiKey: 'contrato' },
+  { id: 3, nome: 'CNPJ',               tipo: 'Documento',    data: '', apiKey: 'cnpj' },
   { id: 4, nome: 'Certificado Digital', tipo: 'Certificação', data: '', apiKey: 'certificadodigital' },
-  { id: 5, nome: 'CNH', tipo: 'Documento', data: '', apiKey: 'cnh' },
-  { id: 6, nome: 'Procuração', tipo: 'Legal', data: '', apiKey: 'procuracao' },
+  { id: 5, nome: 'CNH',                tipo: 'Documento',    data: '', apiKey: 'cnh' },
+  { id: 6, nome: 'Procuração',         tipo: 'Legal',        data: '', apiKey: 'procuracao' },
 ];
+
+// Mapeamento onboarding_requests → apiKey
+const ONBOARDING_MAP: Record<string, string> = {
+  certificadodigital: 'certificado_digital_url',
+  cnh: 'cnh_url',
+  procuracao: 'procuracao_url',
+};
 
 export default function DocumentsPage() {
   const { currentShareholder } = useAuth();
@@ -31,41 +40,80 @@ export default function DocumentsPage() {
 
   useEffect(() => {
     const fetchDocs = async () => {
-      if (!currentShareholder.idPedido || !currentShareholder.idLocadora) {
-        setLoading(false);
-        return;
-      }
+      setLoading(true);
+      const idPedido = currentShareholder.idPedido;
+      const idLocadora = currentShareholder.idLocadora;
 
-      try {
-        const res = await fetch('https://modocorreapp.com.br/api/1.1/wf/Pool_docs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            pedido: currentShareholder.idPedido,
-            locadora: currentShareholder.idLocadora,
-          }),
-        });
+      // Mapa acumulador: apiKey → { fileUrl, origem }
+      const urlMap: Record<string, { fileUrl: string; origem: 'admin' | 'onboarding' | 'api' }> = {};
 
-        const data = await res.json();
-        const response = data.response || {};
-
-        setDocs(prev =>
-          prev.map(doc => {
+      // 1. API externa
+      if (idPedido && idLocadora) {
+        try {
+          const res = await fetch('https://modocorreapp.com.br/api/1.1/wf/Pool_docs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pedido: idPedido, locadora: idLocadora }),
+          });
+          const data = await res.json();
+          const response = data.response || {};
+          for (const doc of documentsList) {
             const value = response[doc.apiKey];
-            if (value) {
-              const url = typeof value === 'string' 
-                ? (value.startsWith('//') ? `https:${value}` : value)
-                : undefined;
-              return { ...doc, fileUrl: url };
+            if (value && typeof value === 'string') {
+              const url = value.startsWith('//') ? `https:${value}` : value;
+              urlMap[doc.apiKey] = { fileUrl: url, origem: 'api' };
             }
-            return doc;
-          })
-        );
-      } catch (err) {
-        console.error('Erro ao buscar documentos:', err);
-      } finally {
-        setLoading(false);
+          }
+        } catch {
+          // silencioso — API externa pode falhar
+        }
       }
+
+      // 2. Dados do onboarding (sobrescreve API)
+      if (idPedido) {
+        try {
+          const { data: onb } = await supabase
+            .from('onboarding_requests')
+            .select('certificado_digital_url, cnh_url, procuracao_url')
+            .eq('pedido_id', idPedido)
+            .maybeSingle();
+
+          if (onb) {
+            for (const [apiKey, onbField] of Object.entries(ONBOARDING_MAP)) {
+              const url = (onb as any)[onbField];
+              if (url) {
+                urlMap[apiKey] = { fileUrl: url, origem: 'onboarding' };
+              }
+            }
+          }
+        } catch {
+          // silencioso
+        }
+
+        // 3. Docs do admin na tabela `documentos` (maior prioridade)
+        try {
+          const { data: adminDocs } = await supabase
+            .from('documentos')
+            .select('tipo, file_url')
+            .eq('pedido_id', idPedido);
+
+          if (adminDocs) {
+            for (const d of adminDocs as { tipo: string; file_url: string }[]) {
+              urlMap[d.tipo] = { fileUrl: d.file_url, origem: 'admin' };
+            }
+          }
+        } catch {
+          // silencioso
+        }
+      }
+
+      setDocs(
+        documentsList.map(doc => {
+          const found = urlMap[doc.apiKey];
+          return found ? { ...doc, fileUrl: found.fileUrl, origem: found.origem } : doc;
+        })
+      );
+      setLoading(false);
     };
 
     fetchDocs();
@@ -108,6 +156,12 @@ export default function DocumentsPage() {
                   <p className={`font-semibold ${available ? 'text-foreground' : 'text-muted-foreground'}`}>{doc.nome}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="secondary" className="text-xs font-medium">{doc.tipo}</Badge>
+                    {doc.origem === 'onboarding' && (
+                      <Badge variant="outline" className="text-xs text-amber-600 border-amber-500/30 bg-amber-500/10">Onboarding</Badge>
+                    )}
+                    {doc.origem === 'admin' && (
+                      <Badge variant="outline" className="text-xs text-primary border-primary/30 bg-primary/5">Admin</Badge>
+                    )}
                     {!available && (
                       <span className="text-xs text-muted-foreground">Indisponível</span>
                     )}

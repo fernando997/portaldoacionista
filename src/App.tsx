@@ -21,6 +21,10 @@ import AdminRegisterPage from "./pages/AdminRegisterPage";
 import AdminRegisterViewerPage from "./pages/AdminRegisterViewerPage";
 import AdminRegisterAdminPage from "./pages/AdminRegisterAdminPage";
 import AdminOnboardingPage from "./pages/AdminOnboardingPage";
+import AdminDocumentosPage from "./pages/AdminDocumentosPage";
+import AdminEquipePage from "./pages/AdminEquipePage";
+import AdminSacPage from "./pages/AdminSacPage";
+import SacPage from "./pages/SacPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import NotFound from "./pages/NotFound";
 
@@ -54,10 +58,13 @@ function AppRoutes() {
       <PortalLayout type="admin">
         <Routes>
           <Route path="/admin" element={<AdminListPage />} />
+          <Route path="/admin/equipe" element={<AdminEquipePage />} />
           <Route path="/admin/cadastrar" element={<AdminRegisterPage />} />
           <Route path="/admin/cadastrar-visualizador" element={<AdminRegisterViewerPage />} />
           <Route path="/admin/cadastrar-admin" element={<AdminRegisterAdminPage />} />
           <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
+          <Route path="/admin/documentos" element={<AdminDocumentosPage />} />
+          <Route path="/admin/sac" element={<AdminSacPage />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </PortalLayout>
@@ -69,9 +76,12 @@ function AppRoutes() {
       <PortalLayout type="admin">
         <Routes>
           <Route path="/admin" element={<AdminListPage />} />
+          <Route path="/admin/equipe" element={<AdminEquipePage />} />
           <Route path="/admin/cadastrar" element={<AdminRegisterPage />} />
           <Route path="/admin/cadastrar-visualizador" element={<AdminRegisterViewerPage />} />
           <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
+          <Route path="/admin/documentos" element={<AdminDocumentosPage />} />
+          <Route path="/admin/sac" element={<AdminSacPage />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </PortalLayout>
@@ -84,6 +94,48 @@ function AppRoutes() {
         <Routes>
           <Route path="/admin" element={<AdminListPage />} />
           <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
+          <Route path="/admin/documentos" element={<AdminDocumentosPage />} />
+          <Route path="/admin/sac" element={<AdminSacPage />} />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
+        </Routes>
+      </PortalLayout>
+    );
+  }
+
+  if (role === 'vendedor') {
+    return (
+      <PortalLayout type="admin">
+        <Routes>
+          <Route path="/admin" element={<AdminListPage />} />
+          <Route path="/admin/cadastrar" element={<AdminRegisterPage />} />
+          <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
+          <Route path="/admin/sac" element={<AdminSacPage />} />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
+        </Routes>
+      </PortalLayout>
+    );
+  }
+
+  if (role === 'sac') {
+    return (
+      <PortalLayout type="admin">
+        <Routes>
+          <Route path="/admin" element={<AdminListPage />} />
+          <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
+          <Route path="/admin/sac" element={<AdminSacPage />} />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
+        </Routes>
+      </PortalLayout>
+    );
+  }
+
+  if (role === 'suporte') {
+    return (
+      <PortalLayout type="admin">
+        <Routes>
+          <Route path="/admin" element={<AdminListPage />} />
+          <Route path="/admin/documentos" element={<AdminDocumentosPage />} />
+          <Route path="/admin/sac" element={<AdminSacPage />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </PortalLayout>
@@ -102,6 +154,7 @@ function AppRoutes() {
         <Route path="/financeiro" element={<FinancialPage />} />
         <Route path="/relatorios" element={<ReportsPage />} />
         <Route path="/seguranca" element={<SecurityPage />} />
+        <Route path="/sac" element={<SacPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </PortalLayout>

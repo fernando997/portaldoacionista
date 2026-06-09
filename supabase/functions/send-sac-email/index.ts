@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from: "SAC Portal do Acionista <onboarding@resend.dev>",
-        to: ["suporte@modocorreinvest.com.br"],
+        to: ["fernandovinicius344@gmail.com"],
         reply_to: userEmail || undefined,
         subject: `[SAC] ${userName} — ${locadoraName || "Locadora não identificada"}`,
         html: emailHtml,

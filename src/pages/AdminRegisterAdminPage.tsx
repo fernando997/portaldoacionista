@@ -2,21 +2,38 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ShieldCheck, Loader2 } from 'lucide-react';
+import { Users, Loader2 } from 'lucide-react';
+
+type InternalRole = 'admin' | 'vendedor' | 'sac' | 'suporte' | 'moderator';
+
+const roleOptions: { value: InternalRole; label: string; desc: string }[] = [
+  { value: 'admin',     label: 'Admin',        desc: 'Acesso total ao painel, pode cadastrar e editar acionistas' },
+  { value: 'vendedor',  label: 'Vendedor',      desc: 'Pode cadastrar acionistas e gerenciar onboarding' },
+  { value: 'sac',       label: 'SAC',           desc: 'Visualiza acionistas e acompanha onboarding' },
+  { value: 'suporte',   label: 'Suporte',       desc: 'Visualiza acionistas e acessa documentos' },
+  { value: 'moderator', label: 'Visualizador',  desc: 'Somente leitura — não pode criar ou editar nada' },
+];
 
 export default function AdminRegisterAdminPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: '' as InternalRole | '' });
 
   const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
+
+  const selectedRole = roleOptions.find(r => r.value === form.role);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.email || !form.password) {
       toast.error('Nome, e-mail e senha são obrigatórios');
+      return;
+    }
+    if (!form.role) {
+      toast.error('Selecione o tipo de acesso');
       return;
     }
     if (form.password.length < 6) {
@@ -38,7 +55,7 @@ export default function AdminRegisterAdminPage() {
         email: form.email.trim(),
         password: form.password,
         group_name: 'Equipe Interna',
-        role: 'admin',
+        role: form.role,
       }),
     });
     const data = await res.json();
@@ -53,7 +70,7 @@ export default function AdminRegisterAdminPage() {
       return;
     }
 
-    toast.success(`Administrador "${form.name}" cadastrado com sucesso!`);
+    toast.success(`Usuário "${form.name}" (${selectedRole?.label}) cadastrado com sucesso!`);
     navigate('/admin');
   };
 
@@ -61,14 +78,33 @@ export default function AdminRegisterAdminPage() {
     <div className="page-container max-w-xl">
       <div className="animate-fade-in">
         <p className="text-sm font-medium text-muted-foreground">Administração</p>
-        <h1 className="section-title">Cadastrar Administrador</h1>
+        <h1 className="section-title">Cadastrar Equipe Interna</h1>
         <p className="text-sm text-muted-foreground -mt-3 mb-6">
-          Este usuário terá acesso total ao painel administrativo, podendo criar, editar e gerenciar acionistas.
+          Crie um acesso para um membro da equipe interna com o nível de permissão adequado.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="bg-card rounded-xl border p-8 space-y-6 animate-fade-in" style={{ animationDelay: '0.1s', opacity: 0, boxShadow: 'var(--shadow-card)' }}>
         <div className="grid grid-cols-1 gap-5">
+          <div className="space-y-2">
+            <Label htmlFor="role" className="text-sm font-semibold">Tipo de acesso *</Label>
+            <Select value={form.role} onValueChange={(v) => update('role', v)}>
+              <SelectTrigger className="h-11">
+                <SelectValue placeholder="Selecione o tipo de acesso" />
+              </SelectTrigger>
+              <SelectContent>
+                {roleOptions.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    <span className="font-medium">{opt.label}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedRole && (
+              <p className="text-xs text-muted-foreground">{selectedRole.desc}</p>
+            )}
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="name" className="text-sm font-semibold">Nome *</Label>
             <Input id="name" value={form.name} onChange={(e) => update('name', e.target.value)} placeholder="Nome completo" className="h-11" required />
@@ -88,8 +124,8 @@ export default function AdminRegisterAdminPage() {
             Cancelar
           </Button>
           <Button type="submit" className="h-11 px-6" disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ShieldCheck className="h-4 w-4 mr-2" />}
-            Cadastrar Administrador
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Users className="h-4 w-4 mr-2" />}
+            Cadastrar
           </Button>
         </div>
       </form>

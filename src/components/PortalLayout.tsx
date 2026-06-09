@@ -1,12 +1,13 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { ShareholderSidebar } from '@/components/ShareholderSidebar';
 import { AdminSidebar } from '@/components/AdminSidebar';
-import { useAuth } from '@/contexts/AuthContext';
-import { Bell, Home, Bike, Map, ScrollText, FileSignature, BarChart3, FileText, ShieldCheck, Users, UserPlus, Link2 } from 'lucide-react';
+import { useAuth, INTERNAL_ROLES } from '@/contexts/AuthContext';
+import { Bell, Home, Bike, Map, ScrollText, FileSignature, BarChart3, FileText, ShieldCheck, Users, UserPlus, Link2, FolderOpen, MessageCircle } from 'lucide-react';
 import logo from '@/assets/logo.png';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import SacButton from '@/components/SacButton';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PortalLayoutProps {
   children: ReactNode;
@@ -26,11 +27,41 @@ const PAGE_META: Record<string, { title: string; icon: any }> = {
   '/admin':             { title: 'Acionistas',          icon: Users },
   '/admin/cadastrar':   { title: 'Cadastrar Acionista', icon: UserPlus },
   '/admin/onboarding':  { title: 'Onboarding',          icon: Link2 },
+  '/admin/documentos':  { title: 'Documentos',           icon: FolderOpen },
+  '/sac':               { title: 'Suporte (SAC)',         icon: MessageCircle },
+  '/admin/sac':         { title: 'SAC',                   icon: MessageCircle },
 };
 
 export default function PortalLayout({ children, type }: PortalLayoutProps) {
-  const { currentShareholder } = useAuth();
+  const { currentShareholder, user, role } = useAuth();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+      setUnreadCount(count ?? 0);
+    };
+    load();
+
+    const channel = supabase
+      .channel('notifications-count')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, () => {
+        load();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, () => {
+        load();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
   const pageMeta = PAGE_META[pathname];
   const PageIcon = pageMeta?.icon;
 
@@ -85,13 +116,23 @@ export default function PortalLayout({ children, type }: PortalLayoutProps) {
             {/* Notification bell */}
             <button
               aria-label="Notificações"
+              onClick={() => navigate(role && INTERNAL_ROLES.includes(role) ? '/admin/sac' : '/sac')}
               className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
             >
               <Bell className="w-4 h-4" />
-              <span
-                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-2 border-card"
-                style={{ background: accentColor }}
-              />
+              {unreadCount > 0 ? (
+                <span
+                  className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 rounded-full border-2 border-card flex items-center justify-center text-[9px] font-bold text-white"
+                  style={{ background: accentColor }}
+                >
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              ) : (
+                <span
+                  className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-2 border-card"
+                  style={{ background: accentColor }}
+                />
+              )}
             </button>
 
             {/* Divider */}

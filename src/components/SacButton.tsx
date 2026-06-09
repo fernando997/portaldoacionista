@@ -1,47 +1,51 @@
 import { useState } from 'react';
 import { MessageCircleQuestion, X, Send, Loader2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, INTERNAL_ROLES } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 export default function SacButton() {
-  const { currentShareholder } = useAuth();
+  const { currentShareholder, user, role } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Hide for internal staff
+  if (role && INTERNAL_ROLES.includes(role)) return null;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!question.trim()) return;
-
-    const locadoraName = currentShareholder.group || 'Não identificada';
-    const userName = currentShareholder.name || 'Não informado';
-    const userEmail = currentShareholder.email || '';
+    if (!question.trim() || !user) return;
 
     setLoading(true);
     try {
-      const { error } = await supabase.functions.invoke('send-sac-email', {
-        body: {
-          userName,
-          userEmail,
-          locadoraName,
-          idLocadora: currentShareholder.idLocadora,
-          question: question.trim(),
-        },
+      const { data: ticket, error: ticketError } = await supabase
+        .from('sac_tickets')
+        .insert({ user_id: user.id, assunto: question.trim() })
+        .select()
+        .single();
+
+      if (ticketError || !ticket) throw ticketError;
+
+      const { error: msgError } = await supabase.from('sac_messages').insert({
+        ticket_id: ticket.id,
+        author_id: user.id,
+        content: question.trim(),
+        is_staff: false,
       });
 
-      if (error) throw error;
+      if (msgError) throw msgError;
 
-      toast({
-        title: 'Ticket enviado com sucesso!',
-        description: 'Nossa equipe responderá em breve pelo e-mail cadastrado.',
-      });
+      toast({ title: 'Ticket criado com sucesso!', description: 'Acompanhe a resposta na página de Suporte.' });
       setQuestion('');
       setOpen(false);
+      navigate('/sac');
     } catch {
       toast({
-        title: 'Erro ao enviar ticket',
+        title: 'Erro ao criar ticket',
         description: 'Tente novamente ou entre em contato pelo e-mail suporte@modocorreinvest.com.br',
         variant: 'destructive',
       });
@@ -52,7 +56,7 @@ export default function SacButton() {
 
   return (
     <>
-      {/* Botão flutuante */}
+      {/* Floating button */}
       <button
         onClick={() => setOpen(true)}
         aria-label="Abrir SAC"
@@ -95,7 +99,7 @@ export default function SacButton() {
 
             {/* Body */}
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
-              {/* Info do cliente (readonly) */}
+              {/* Client info (readonly) */}
               <div className="bg-muted/50 rounded-xl p-3.5 space-y-1.5 border">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground font-medium">Cliente</span>
@@ -107,7 +111,7 @@ export default function SacButton() {
                 </div>
               </div>
 
-              {/* Campo de dúvida */}
+              {/* Message field */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Sua dúvida ou mensagem
@@ -122,10 +126,10 @@ export default function SacButton() {
                 />
               </div>
 
-              {/* Rodapé */}
+              {/* Footer */}
               <div className="flex items-center justify-between pt-1 gap-3">
                 <p className="text-[11px] text-muted-foreground leading-snug">
-                  Responderemos pelo e-mail cadastrado.
+                  Acompanhe a resposta no portal, em Suporte.
                 </p>
                 <button
                   type="submit"

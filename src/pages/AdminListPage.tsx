@@ -16,6 +16,7 @@ export default function AdminListPage() {
   const { shareholders, viewAs, role } = useAuth();
   const isViewer = role === 'viewer';
   const isSuperAdmin = role === 'superadmin';
+  const onlyShareholders = shareholders.filter(s => !s.internalRole);
   const navigate = useNavigate();
   const [editing, setEditing] = useState<Shareholder | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
@@ -132,7 +133,7 @@ export default function AdminListPage() {
         </div>
         <Badge variant="secondary" className="text-sm px-3 py-1">
           <Users className="w-3.5 h-3.5 mr-1.5" />
-          {shareholders.length} cadastrados
+          {onlyShareholders.length} cadastrados
         </Badge>
       </div>
 
@@ -150,7 +151,7 @@ export default function AdminListPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {shareholders.map((s) => (
+              {onlyShareholders.map((s) => (
                 <TableRow key={s.id} className="hover:bg-muted/30 transition-colors">
                   <TableCell className="font-semibold text-foreground">
                     {s.name}

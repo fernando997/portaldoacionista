@@ -75,7 +75,7 @@ function FileUploadBox({ file, savedUrl, uploading, onChange, id, accept, hint }
               </>
             : file ? <>
                 <p className="text-sm font-semibold text-foreground truncate">{file.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Aguardando envio final</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Enviando arquivo...</p>
               </>
             : <>
                 <p className="text-sm font-medium text-foreground">Clique para selecionar</p>
@@ -175,6 +175,16 @@ export default function OnboardingPage() {
   const cnpjTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const senhaTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const draftKey = token ? `ob_draft_${token}` : null;
+
+  // Persiste CNPJ e senha no localStorage sempre que mudam
+  useEffect(() => {
+    if (!draftKey || loading) return;
+    try {
+      localStorage.setItem(draftKey, JSON.stringify({ cnpj, senhaCertificado }));
+    } catch {}
+  }, [cnpj, senhaCertificado, draftKey, loading]);
+
   const formatCnpj = (v: string) => {
     const d = v.replace(/\D/g, '').slice(0, 14);
     return d
@@ -221,8 +231,6 @@ export default function OnboardingPage() {
         setRequestId(data.id);
         setPedidoId(data.pedido_id);
         if ((data as any).cliente) setClienteNome((data as any).cliente);
-        if (data.cnpj) setCnpj(data.cnpj);
-        if (data.senha_certificado) setSenhaCertificado(data.senha_certificado);
         if (data.certificado_digital_url) setSavedCertificadoUrl(data.certificado_digital_url);
         if (data.cnh_url) setSavedCnhUrl(data.cnh_url);
         if (data.procuracao_url) setSavedProcuracaoUrl(data.procuracao_url);
@@ -231,6 +239,18 @@ export default function OnboardingPage() {
           setPaymentStatus((data as any).payment_status ?? 'GERADO');
           if ((data as any).payment_descricao) setPaymentDescricao((data as any).payment_descricao);
         }
+
+        // Carrega CNPJ e senha: DB tem prioridade, localStorage é fallback
+        const dKey = `ob_draft_${token}`;
+        let draftCnpj = '';
+        let draftSenha = '';
+        try {
+          const raw = localStorage.getItem(dKey);
+          if (raw) { const d = JSON.parse(raw); draftCnpj = d.cnpj || ''; draftSenha = d.senhaCertificado || ''; }
+        } catch {}
+        setCnpj(data.cnpj || draftCnpj);
+        setSenhaCertificado(data.senha_certificado || draftSenha);
+
         setLoading(false);
         fetchPaymentUrl(data.pedido_id, data.id);
       });
@@ -264,22 +284,24 @@ export default function OnboardingPage() {
   const cnpjValido = cnpjDigits.length === 14;
 
   useEffect(() => {
-    if (!requestId || !cnpjValido) return;
+    if (!requestId || !cnpj.trim()) return;
     if (cnpjTimerRef.current) clearTimeout(cnpjTimerRef.current);
     cnpjTimerRef.current = setTimeout(async () => {
       setSavingCnpj(true);
-      await supabase.from('onboarding_requests').update({ cnpj }).eq('id', requestId);
+      const { error } = await supabase.from('onboarding_requests').update({ cnpj }).eq('id', requestId);
+      if (error) toast.error('Erro ao salvar CNPJ: ' + error.message);
       setSavingCnpj(false);
     }, 1000);
     return () => { if (cnpjTimerRef.current) clearTimeout(cnpjTimerRef.current); };
-  }, [cnpj, cnpjValido, requestId]);
+  }, [cnpj, requestId]);
 
   useEffect(() => {
     if (!requestId || !senhaCertificado.trim()) return;
     if (senhaTimerRef.current) clearTimeout(senhaTimerRef.current);
     senhaTimerRef.current = setTimeout(async () => {
       setSavingSenha(true);
-      await supabase.from('onboarding_requests').update({ senha_certificado: senhaCertificado.trim() }).eq('id', requestId);
+      const { error } = await supabase.from('onboarding_requests').update({ senha_certificado: senhaCertificado.trim() }).eq('id', requestId);
+      if (error) toast.error('Erro ao salvar senha: ' + error.message);
       setSavingSenha(false);
     }, 1000);
     return () => { if (senhaTimerRef.current) clearTimeout(senhaTimerRef.current); };
@@ -301,11 +323,15 @@ export default function OnboardingPage() {
     setUploading(true);
     try {
       const url = await uploadFile(file, folder);
-      await supabase.from('onboarding_requests').update({ [dbField]: url }).eq('id', requestId);
+      const { error: dbError } = await supabase
+        .from('onboarding_requests')
+        .update({ [dbField]: url })
+        .eq('id', requestId);
+      if (dbError) throw dbError;
       setSaved(url);
       toast.success('Arquivo salvo!');
     } catch (err: any) {
-      toast.error('Erro ao enviar: ' + (err.message || ''));
+      toast.error('Erro ao salvar: ' + (err.message || ''));
     } finally {
       setUploading(false);
     }
@@ -326,7 +352,7 @@ export default function OnboardingPage() {
     savedCnhUrl, cnhFile, savedProcuracaoUrl, procuracaoFile, isPago,
   ]);
 
-  const allFilled = progressPercent === 100;
+  const docsFilled = steps.slice(0, 4).every(s => s.done);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -593,21 +619,19 @@ export default function OnboardingPage() {
         <div className="pt-2">
           <Button
             onClick={handleSubmit}
-            disabled={!allFilled || submitting}
+            disabled={!docsFilled || submitting}
             className={cn(
               'w-full h-14 text-base gap-2 rounded-2xl font-semibold transition-all duration-300',
-              allFilled && !submitting ? 'gradient-accent shadow-lg shadow-accent/20 hover:-translate-y-0.5' : 'opacity-50 cursor-not-allowed',
+              docsFilled && !submitting ? 'gradient-accent shadow-lg shadow-accent/20 hover:-translate-y-0.5' : 'opacity-50 cursor-not-allowed',
             )}
             size="lg"
           >
             {submitting ? (
               <><Loader2 className="w-5 h-5 animate-spin" /> Finalizando envio...</>
-            ) : allFilled ? (
+            ) : docsFilled ? (
               <><Send className="w-5 h-5" /> Confirmar e Enviar Documentos</>
-            ) : !isPago ? (
-              <span className="text-sm">Realize o pagamento para liberar o envio</span>
             ) : (
-              <span className="text-sm">{progressPercent}% — preencha todas as etapas</span>
+              <span className="text-sm">{progressPercent}% — preencha as etapas 1 a 4</span>
             )}
           </Button>
         </div>

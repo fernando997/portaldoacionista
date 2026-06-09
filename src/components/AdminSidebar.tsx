@@ -1,6 +1,8 @@
-import { Users, UserPlus, LogOut, Shield, ShieldCheck, Link2, ChevronRight, Eye } from 'lucide-react';
+import { Users, UserPlus, LogOut, Shield, ShieldCheck, Link2, ChevronRight, Eye, FolderOpen, Headphones, Wrench, TrendingUp, Users2, MessageCircle } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, UserRole } from '@/contexts/AuthContext';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter,
@@ -10,15 +12,35 @@ import { Button } from '@/components/ui/button';
 import logo from '@/assets/logo.png';
 import { cn } from '@/lib/utils';
 
+type RoleConfig = {
+  label: string;
+  abbr: string;
+  desc: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+const roleConfig: Record<NonNullable<UserRole>, RoleConfig> = {
+  superadmin: { label: 'Super Admin',  abbr: 'S',  desc: 'Acesso máximo',      icon: ShieldCheck },
+  admin:      { label: 'Admin',        abbr: 'A',  desc: 'Acesso total',        icon: Shield      },
+  viewer:     { label: 'Visualizador', abbr: 'V',  desc: 'Somente leitura',     icon: Eye         },
+  vendedor:   { label: 'Vendedor',     abbr: 'Ve', desc: 'Equipe de vendas',    icon: TrendingUp  },
+  sac:        { label: 'SAC',          abbr: 'SC', desc: 'Atendimento',         icon: Headphones  },
+  suporte:    { label: 'Suporte',      abbr: 'Su', desc: 'Suporte técnico',     icon: Wrench      },
+  shareholder:{ label: 'Acionista',    abbr: 'Ac', desc: '',                    icon: Users       },
+};
+
 const allAdminItems = [
-  { title: 'Acionistas',          url: '/admin',                         icon: Users,       end: true,  viewerVisible: true,  superadminOnly: false },
-  { title: 'Cadastrar',           url: '/admin/cadastrar',                icon: UserPlus,    end: true,  viewerVisible: false, superadminOnly: false },
-  { title: 'Cad. Visualizador',   url: '/admin/cadastrar-visualizador',   icon: Eye,         end: true,  viewerVisible: false, superadminOnly: false },
-  { title: 'Cadastrar Admin',     url: '/admin/cadastrar-admin',          icon: ShieldCheck, end: true,  viewerVisible: false, superadminOnly: true  },
-  { title: 'Onboarding',          url: '/admin/onboarding',               icon: Link2,       end: true,  viewerVisible: true,  superadminOnly: false },
+  { title: 'Acionistas',          url: '/admin',                         icon: Users,       end: true,  roles: ['superadmin', 'admin', 'viewer', 'vendedor', 'sac', 'suporte'] },
+  { title: 'Equipe Interna',      url: '/admin/equipe',                   icon: Users2,      end: true,  roles: ['superadmin', 'admin'] },
+  { title: 'Cadastrar',           url: '/admin/cadastrar',                icon: UserPlus,    end: true,  roles: ['superadmin', 'admin', 'vendedor'] },
+  { title: 'Cad. Visualizador',   url: '/admin/cadastrar-visualizador',   icon: Eye,         end: true,  roles: ['superadmin', 'admin'] },
+  { title: 'Cadastrar Equipe',    url: '/admin/cadastrar-admin',          icon: ShieldCheck, end: true,  roles: ['superadmin'] },
+  { title: 'Onboarding',          url: '/admin/onboarding',               icon: Link2,       end: true,  roles: ['superadmin', 'admin', 'viewer', 'vendedor', 'sac'] },
+  { title: 'Documentos',          url: '/admin/documentos',               icon: FolderOpen,  end: true,  roles: ['superadmin', 'admin', 'viewer', 'suporte'] },
+  { title: 'SAC',                 url: '/admin/sac',                      icon: MessageCircle, end: true, roles: ['superadmin', 'admin', 'viewer', 'vendedor', 'sac', 'suporte'] },
 ];
 
-function NavItem({ title, url, icon: Icon, end = false }: { title: string; url: string; icon: any; end?: boolean }) {
+function NavItem({ title, url, icon: Icon, end = false, badge = 0 }: { title: string; url: string; icon: any; end?: boolean; badge?: number }) {
   const { pathname } = useLocation();
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
@@ -51,7 +73,13 @@ function NavItem({ title, url, icon: Icon, end = false }: { title: string; url: 
             <span className="flex-1 truncate">{title}</span>
           )}
 
-          {!collapsed && isActive && (
+          {!collapsed && badge > 0 && (
+            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[hsl(210,80%,52%)] text-white text-[10px] font-bold shrink-0">
+              {badge > 9 ? '9+' : badge}
+            </span>
+          )}
+
+          {!collapsed && isActive && badge === 0 && (
             <ChevronRight className="w-3 h-3 text-[hsl(210,80%,60%)]/60 shrink-0" />
           )}
         </Link>
@@ -64,13 +92,28 @@ export function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const { logout, role } = useAuth();
-  const isViewer = role === 'viewer';
-  const isSuperadmin = role === 'superadmin';
-  const navItems = allAdminItems.filter(i => {
-    if (isViewer) return i.viewerVisible;
-    if (isSuperadmin) return true;
-    return !i.superadminOnly;
-  });
+  const cfg = role ? roleConfig[role] : roleConfig['admin'];
+  const RoleIcon = cfg.icon;
+  const navItems = allAdminItems.filter(i => role && i.roles.includes(role));
+  const [openTickets, setOpenTickets] = useState(0);
+
+  useEffect(() => {
+    const load = async () => {
+      const { count } = await supabase
+        .from('sac_tickets')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'aberto');
+      setOpenTickets(count ?? 0);
+    };
+    load();
+
+    const channel = supabase
+      .channel('admin-sac-count')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sac_tickets' }, () => load())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   return (
     <Sidebar collapsible="icon">
@@ -100,18 +143,12 @@ export function AdminSidebar() {
         {!collapsed && (
           <div className="mx-3 mt-2 px-3 py-2 rounded-xl bg-[hsl(210,80%,52%)]/[0.12] border border-[hsl(210,80%,52%)]/[0.2] flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-[hsl(210,80%,60%)]" />
-            {isViewer ? (
-              <Eye className="w-3 h-3 text-[hsl(210,80%,65%)] shrink-0" />
-            ) : isSuperadmin ? (
-              <ShieldCheck className="w-3 h-3 text-[hsl(210,80%,65%)] shrink-0" />
-            ) : (
-              <Shield className="w-3 h-3 text-[hsl(210,80%,65%)] shrink-0" />
-            )}
+            <RoleIcon className="w-3 h-3 text-[hsl(210,80%,65%)] shrink-0" />
             <span
               className="text-[10px] uppercase tracking-[0.1em] text-[hsl(210,80%,65%)]"
               style={{ fontFamily: 'var(--font-body)', fontWeight: 700 }}
             >
-              {isViewer ? 'Visualizador' : isSuperadmin ? 'Super Admin' : 'Painel Admin'}
+              {cfg.label}
             </span>
           </div>
         )}
@@ -127,8 +164,8 @@ export function AdminSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu className="space-y-0.5">
-              {navItems.map(({ viewerVisible: _, superadminOnly: __, ...item }) => (
-                <NavItem key={item.url} {...item} />
+              {navItems.map(({ roles: _, ...item }) => (
+                <NavItem key={item.url} {...item} badge={item.url === '/admin/sac' ? openTickets : 0} />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -144,23 +181,23 @@ export function AdminSidebar() {
           <div className="flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-white/[0.05] transition-colors duration-200 mb-1">
             <div className="relative shrink-0">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[hsl(220,60%,28%)] to-[hsl(220,60%,18%)] border border-white/[0.12] flex items-center justify-center shadow-md">
-                <span className="text-[12px] font-bold text-white/90" style={{ fontFamily: 'var(--font-body)' }}>{isViewer ? 'V' : isSuperadmin ? 'S' : 'A'}</span>
+                <span className="text-[11px] font-bold text-white/90" style={{ fontFamily: 'var(--font-body)' }}>{cfg.abbr}</span>
               </div>
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[hsl(210,80%,60%)] border-2 border-[hsl(220,60%,6%)] rounded-full" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[13px] font-semibold text-white/90 leading-tight" style={{ fontFamily: 'var(--font-body)' }}>
-                {isViewer ? 'Visualizador' : isSuperadmin ? 'Super Admin' : 'Administrador'}
+                {cfg.label}
               </p>
               <p className="text-[11px] text-white/35 mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
-                {isViewer ? 'Somente leitura' : isSuperadmin ? 'Acesso máximo' : 'Acesso total'}
+                {cfg.desc}
               </p>
             </div>
           </div>
         ) : (
           <div className="flex justify-center mb-1">
             <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-[hsl(220,60%,28%)] to-[hsl(220,60%,18%)] border border-white/[0.12] flex items-center justify-center">
-              <span className="text-[12px] font-bold text-white/90" style={{ fontFamily: 'var(--font-body)' }}>{isViewer ? 'V' : isSuperadmin ? 'S' : 'A'}</span>
+              <span className="text-[11px] font-bold text-white/90" style={{ fontFamily: 'var(--font-body)' }}>{cfg.abbr}</span>
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[hsl(210,80%,60%)] border-2 border-[hsl(220,60%,6%)] rounded-full" />
             </div>
           </div>

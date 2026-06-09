@@ -1,10 +1,12 @@
 import {
   Home, Bike, FileText, BarChart3, UserCircle, LogOut,
-  Map, ScrollText, FileSignature, ArrowLeftCircle, ChevronRight,
+  Map, ScrollText, FileSignature, ArrowLeftCircle, ChevronRight, MessageCircle,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter,
@@ -41,11 +43,12 @@ const NAV_GROUPS = [
       { title: 'Documentos', url: '/documentos', icon: FileText },
       { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
       { title: 'Minha Conta', url: '/seguranca', icon: UserCircle },
+      { title: 'SAC', url: '/sac', icon: MessageCircle },
     ],
   },
 ];
 
-function NavItem({ title, url, icon: Icon, end = false }: { title: string; url: string; icon: any; end?: boolean }) {
+function NavItem({ title, url, icon: Icon, end = false, badge = 0 }: { title: string; url: string; icon: any; end?: boolean; badge?: number }) {
   const { pathname } = useLocation();
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
@@ -78,8 +81,14 @@ function NavItem({ title, url, icon: Icon, end = false }: { title: string; url: 
             <span className="flex-1 truncate">{title}</span>
           )}
 
+          {!collapsed && badge > 0 && (
+            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[hsl(135,55%,42%)] text-white text-[10px] font-bold shrink-0">
+              {badge > 9 ? '9+' : badge}
+            </span>
+          )}
+
           {/* Active chevron */}
-          {!collapsed && isActive && (
+          {!collapsed && isActive && badge === 0 && (
             <ChevronRight className="w-3 h-3 text-[hsl(135,55%,48%)]/60 shrink-0" />
           )}
         </Link>
@@ -91,8 +100,30 @@ function NavItem({ title, url, icon: Icon, end = false }: { title: string; url: 
 export function ShareholderSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const { logout, currentShareholder, isImpersonating, returnToAdmin } = useAuth();
+  const { logout, currentShareholder, user, isImpersonating, returnToAdmin } = useAuth();
   const navigate = useNavigate();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+      setUnreadCount(count ?? 0);
+    };
+    load();
+
+    const channel = supabase
+      .channel('sidebar-notif-count')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, () => load())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, () => load())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   const initials = currentShareholder.name
     .split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
@@ -139,7 +170,7 @@ export function ShareholderSidebar() {
                 )}
                 <SidebarMenu className="space-y-0.5">
                   {group.items.map((item) => (
-                    <NavItem key={item.url} {...item} />
+                    <NavItem key={item.url} {...item} badge={item.url === '/sac' ? unreadCount : 0} />
                   ))}
                 </SidebarMenu>
               </div>
