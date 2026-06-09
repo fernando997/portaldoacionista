@@ -14,6 +14,124 @@ export type Database = {
   }
   public: {
     Tables: {
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          type: string
+          title: string
+          body: string | null
+          ticket_id: string | null
+          read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: string
+          title: string
+          body?: string | null
+          ticket_id?: string | null
+          read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          type?: string
+          title?: string
+          body?: string | null
+          ticket_id?: string | null
+          read?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      sac_messages: {
+        Row: {
+          id: string
+          ticket_id: string
+          author_id: string
+          content: string
+          is_staff: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          ticket_id: string
+          author_id: string
+          content: string
+          is_staff?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          ticket_id?: string
+          author_id?: string
+          content?: string
+          is_staff?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      sac_tickets: {
+        Row: {
+          id: string
+          user_id: string
+          assunto: string
+          status: string
+          created_at: string
+          updated_at: string
+          ticket_number: number
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          assunto: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          assunto?: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      documentos: {
+        Row: {
+          id: string
+          pedido_id: string
+          tipo: string
+          nome: string | null
+          file_url: string
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          pedido_id: string
+          tipo: string
+          nome?: string | null
+          file_url: string
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          pedido_id?: string
+          tipo?: string
+          nome?: string | null
+          file_url?: string
+          created_at?: string
+          created_by?: string | null
+        }
+        Relationships: []
+      }
       onboarding_logs: {
         Row: {
           created_at: string
