@@ -22,6 +22,27 @@ export interface Shareholder {
   internalRole?: string; // definido somente para equipe interna
 }
 
+export interface PendingShareholder {
+  id: string;
+  nome: string;
+  cpf: string | null;
+  email: string | null;
+  whatsapp: string | null;
+  created_at: string;
+}
+
+export interface OnboardingStatus {
+  cnpj: string | null;
+  cep: string | null;
+  rua: string | null;
+  asaas_config: { accountCreated?: boolean } | null;
+  certificado_digital_url: string | null;
+  senha_certificado: string | null;
+  cnh_url: string | null;
+  procuracao_url: string | null;
+  assinatura_url: string | null;
+}
+
 const INTERNAL_DB_ROLES = ['admin', 'superadmin', 'moderator', 'vendedor', 'sac', 'suporte'];
 
 interface AuthContextType {
@@ -33,10 +54,13 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
   shareholders: Shareholder[];
+  pendingShareholders: PendingShareholder[];
   addShareholder: (s: Shareholder) => void;
   viewAs: (id: string) => void;
   isImpersonating: boolean;
   returnToAdmin: () => void;
+  onboardingPending: boolean;
+  onboardingData: OnboardingStatus | null;
 }
 
 const defaultShareholder: Shareholder = {
@@ -63,9 +87,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [currentShareholder, setCurrentShareholder] = useState<Shareholder>(defaultShareholder);
   const [shareholders, setShareholders] = useState<Shareholder[]>([]);
+  const [pendingShareholders, setPendingShareholders] = useState<PendingShareholder[]>([]);
   const [isImpersonating, setIsImpersonating] = useState(false);
   const isImpersonatingRef = useRef(false);
   const [adminSnapshot, setAdminSnapshot] = useState<Shareholder | null>(null);
+  const [onboardingPending, setOnboardingPending] = useState(false);
+  const [onboardingData, setOnboardingData] = useState<OnboardingStatus | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -148,12 +175,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const internalDbRoles = ['admin', 'superadmin', 'moderator', 'vendedor', 'sac', 'suporte'];
+
+    // Check onboarding pending for shareholders
+    if (!roles?.some(r => internalDbRoles.includes(r.role))) {
+      try {
+        const { data: inv } = await (supabase as any)
+          .from('investidores')
+          .select('id')
+          .eq('profile_id', profile?.id)
+          .maybeSingle();
+
+        if (inv) {
+          const { data: pedidos } = await (supabase as any)
+            .from('pedidos')
+            .select('numero, created_at')
+            .eq('investidor_id', inv.id)
+            .eq('tipo_investidor', 'novo');
+
+          if (pedidos && pedidos.length > 0) {
+            const buildPedNum = (numero: number, createdAt: string) => {
+              const year = new Date(createdAt).getFullYear();
+              return `PED-${year}-${String(numero).padStart(4, '0')}`;
+            };
+            const pedidoIds = pedidos.map((p: any) => buildPedNum(p.numero, p.created_at));
+            const { data: onbs } = await (supabase as any)
+              .from('onboarding_requests')
+              .select('status, cnpj, cep, rua, asaas_config, certificado_digital_url, senha_certificado, cnh_url, procuracao_url, assinatura_url')
+              .in('pedido_id', pedidoIds)
+              .eq('status', 'pendente');
+            const pendingOnb = (onbs ?? []).length > 0;
+            setOnboardingPending(pendingOnb);
+            if (pendingOnb && onbs[0]) {
+              setOnboardingData(onbs[0] as OnboardingStatus);
+            }
+          }
+        }
+      } catch {
+        // silently fail
+      }
+    }
+
     // Load all shareholders if internal user
     if (roles && roles.some(r => internalDbRoles.includes(r.role))) {
       const [{ data: allProfiles }, { data: allRoles }] = await Promise.all([
         supabase.from('profiles').select('*'),
         supabase.from('user_roles').select('user_id, role'),
       ]);
+
+      const { data: pendingInv } = await (supabase as any)
+        .from('investidores')
+        .select('id, nome, cpf, email, whatsapp, created_at')
+        .is('profile_id', null);
+      setPendingShareholders((pendingInv ?? []) as PendingShareholder[]);
 
       if (allProfiles) {
         setShareholders(allProfiles.map(p => {
@@ -220,7 +293,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ role, currentShareholder, user, session, loading, login, logout, shareholders, addShareholder, viewAs, isImpersonating, returnToAdmin }}>
+    <AuthContext.Provider value={{ role, currentShareholder, user, session, loading, login, logout, shareholders, pendingShareholders, addShareholder, viewAs, isImpersonating, returnToAdmin, onboardingPending, onboardingData }}>
       {children}
     </AuthContext.Provider>
   );

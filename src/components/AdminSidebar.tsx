@@ -1,4 +1,4 @@
-import { Users, UserPlus, LogOut, Shield, ShieldCheck, Link2, ChevronRight, Eye, FolderOpen, Headphones, Wrench, TrendingUp, Users2, MessageCircle } from 'lucide-react';
+import { Users, UserPlus, LogOut, Shield, ShieldCheck, ChevronRight, Eye, FolderOpen, Headphones, Wrench, TrendingUp, Users2, MessageCircle, ClipboardList, Code2, Package, DollarSign, Truck } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
@@ -29,15 +29,62 @@ const roleConfig: Record<NonNullable<UserRole>, RoleConfig> = {
   shareholder:{ label: 'Acionista',    abbr: 'Ac', desc: '',                    icon: Users       },
 };
 
-const allAdminItems = [
-  { title: 'Acionistas',          url: '/admin',                         icon: Users,       end: true,  roles: ['superadmin', 'admin', 'viewer', 'vendedor', 'sac', 'suporte'] },
-  { title: 'Equipe Interna',      url: '/admin/equipe',                   icon: Users2,      end: true,  roles: ['superadmin', 'admin'] },
-  { title: 'Cadastrar',           url: '/admin/cadastrar',                icon: UserPlus,    end: true,  roles: ['superadmin', 'admin', 'vendedor'] },
-  { title: 'Cad. Visualizador',   url: '/admin/cadastrar-visualizador',   icon: Eye,         end: true,  roles: ['superadmin', 'admin'] },
-  { title: 'Cadastrar Equipe',    url: '/admin/cadastrar-admin',          icon: ShieldCheck, end: true,  roles: ['superadmin'] },
-  { title: 'Onboarding',          url: '/admin/onboarding',               icon: Link2,       end: true,  roles: ['superadmin', 'admin', 'viewer', 'vendedor', 'sac'] },
-  { title: 'Documentos',          url: '/admin/documentos',               icon: FolderOpen,  end: true,  roles: ['superadmin', 'admin', 'viewer', 'suporte'] },
-  { title: 'SAC',                 url: '/admin/sac',                      icon: MessageCircle, end: true, roles: ['superadmin', 'admin', 'viewer', 'vendedor', 'sac', 'suporte'] },
+type NavItemDef = {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+  end?: boolean;
+  roles: string[];
+};
+
+type NavSection = {
+  label: string;
+  items: NavItemDef[];
+};
+
+const navSections: NavSection[] = [
+  {
+    label: 'Admin',
+    items: [
+      { title: 'Equipe Interna',    url: '/admin/equipe',                  icon: Users2,      end: true, roles: ['superadmin', 'admin'] },
+      { title: 'Novo Acionista',    url: '/admin/cadastrar',               icon: UserPlus,    end: true, roles: ['superadmin', 'admin'] },
+      { title: 'Novo Visualizador', url: '/admin/cadastrar-visualizador',  icon: Eye,         end: true, roles: ['superadmin', 'admin'] },
+      { title: 'Novo Membro',       url: '/admin/cadastrar-admin',         icon: ShieldCheck, end: true, roles: ['superadmin'] },
+    ],
+  },
+  {
+    label: 'Vendas',
+    items: [
+      { title: 'Acionistas',  url: '/admin',             icon: Users,         end: true, roles: ['superadmin', 'admin', 'vendedor', 'viewer', 'sac'] },
+      // { title: 'Documentos',  url: '/admin/documentos',  icon: FolderOpen,    end: true, roles: ['superadmin', 'admin', 'vendedor', 'viewer', 'sac', 'suporte'] },
+      { title: 'Pedidos',     url: '/admin/pedidos',     icon: ClipboardList, end: true, roles: ['superadmin', 'admin', 'vendedor'] },
+    ],
+  },
+  {
+    label: 'Onboarding',
+    items: [
+      { title: 'Onboarding', url: '/admin/onboarding', icon: Package, end: true, roles: ['superadmin', 'admin', 'vendedor', 'sac'] },
+    ],
+  },
+  {
+    label: 'Financeiro',
+    items: [
+      { title: 'Cobranças', url: '/admin/financeiro', icon: DollarSign, end: true, roles: ['superadmin', 'admin', 'vendedor'] },
+      { title: 'Veículos Recebidos', url: '/admin/veiculos', icon: Truck, end: true, roles: ['superadmin', 'admin', 'sac', 'suporte'] },
+    ],
+  },
+  {
+    label: 'Atendimento',
+    items: [
+      { title: 'SAC', url: '/admin/sac', icon: MessageCircle, end: true, roles: ['superadmin', 'admin', 'sac', 'suporte'] },
+    ],
+  },
+  {
+    label: 'Desenvolvedor',
+    items: [
+      { title: 'API Explorer', url: '/admin/api', icon: Code2, end: true, roles: ['superadmin', 'admin'] },
+    ],
+  },
 ];
 
 function NavItem({ title, url, icon: Icon, end = false, badge = 0 }: { title: string; url: string; icon: any; end?: boolean; badge?: number }) {
@@ -59,7 +106,6 @@ function NavItem({ title, url, icon: Icon, end = false, badge = 0 }: { title: st
           )}
           style={{ fontFamily: 'var(--font-body)', fontWeight: isActive ? 600 : 500 }}
         >
-          {/* Active left bar */}
           {isActive && (
             <span className="absolute left-0 top-2.5 bottom-2.5 w-[3px] bg-gradient-to-b from-[hsl(210,80%,65%)] to-[hsl(210,80%,45%)] rounded-r-full shadow-[0_0_8px_hsl(210,80%,55%)]" />
           )}
@@ -88,14 +134,36 @@ function NavItem({ title, url, icon: Icon, end = false, badge = 0 }: { title: st
   );
 }
 
+function SectionLabel({ label, collapsed }: { label: string; collapsed: boolean }) {
+  if (collapsed) {
+    return <div className="mx-auto my-1.5 w-5 h-px bg-white/10 rounded-full" />;
+  }
+  return (
+    <p
+      className="px-3 mb-1 mt-3 first:mt-0 text-[10px] uppercase tracking-[0.12em] text-white/25 select-none"
+      style={{ fontFamily: 'var(--font-body)', fontWeight: 700 }}
+    >
+      {label}
+    </p>
+  );
+}
+
 export function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const { logout, role } = useAuth();
   const cfg = role ? roleConfig[role] : roleConfig['admin'];
   const RoleIcon = cfg.icon;
-  const navItems = allAdminItems.filter(i => role && i.roles.includes(role));
   const [openTickets, setOpenTickets] = useState(0);
+  const [pendingOnboardings, setPendingOnboardings] = useState(0);
+
+  // Filter sections by role, removing empty sections
+  const visibleSections = navSections
+    .map(section => ({
+      ...section,
+      items: section.items.filter(item => role && item.roles.includes(role)),
+    }))
+    .filter(section => section.items.length > 0);
 
   useEffect(() => {
     const load = async () => {
@@ -115,13 +183,29 @@ export function AdminSidebar() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  useEffect(() => {
+    const load = async () => {
+      const { count } = await (supabase as any)
+        .from('onboarding_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pendente');
+      setPendingOnboardings(count ?? 0);
+    };
+    load();
+    const channel = supabase
+      .channel('admin-onboarding-count')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'onboarding_requests' }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent className="overflow-x-hidden" style={{
         background: 'linear-gradient(180deg, hsl(222,65%,10%) 0%, hsl(220,62%,8%) 50%, hsl(220,60%,6%) 100%)',
       }}>
 
-        {/* Ambient glow — blue for admin */}
+        {/* Ambient glow */}
         <div className="absolute top-0 left-0 right-0 h-48 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse at 50% -20%, hsl(210,80%,52%,0.1) 0%, transparent 70%)' }}
         />
@@ -153,21 +237,23 @@ export function AdminSidebar() {
           </div>
         )}
 
-        <SidebarGroup className="px-2 pt-3 pb-2 flex-1">
-          {!collapsed && (
-            <p
-              className="px-3 mb-1.5 text-[10px] uppercase tracking-[0.12em] text-white/25 select-none"
-              style={{ fontFamily: 'var(--font-body)', fontWeight: 700 }}
-            >
-              Navegação
-            </p>
-          )}
+        {/* Navigation sections */}
+        <SidebarGroup className="px-2 pt-2 pb-2 flex-1">
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-0.5">
-              {navItems.map(({ roles: _, ...item }) => (
-                <NavItem key={item.url} {...item} badge={item.url === '/admin/sac' ? openTickets : 0} />
-              ))}
-            </SidebarMenu>
+            {visibleSections.map((section) => (
+              <div key={section.label}>
+                <SectionLabel label={section.label} collapsed={collapsed} />
+                <SidebarMenu className="space-y-0.5">
+                  {section.items.map(({ roles: _, ...item }) => (
+                    <NavItem
+                      key={item.url}
+                      {...item}
+                      badge={item.url === '/admin/sac' ? openTickets : item.url === '/admin/onboarding' ? pendingOnboardings : 0}
+                    />
+                  ))}
+                </SidebarMenu>
+              </div>
+            ))}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

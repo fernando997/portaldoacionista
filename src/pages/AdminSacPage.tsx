@@ -6,8 +6,105 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Send, Loader2, MessageCircle, Headphones } from 'lucide-react';
+import { Send, Loader2, MessageCircle, Headphones, Clock, AlertTriangle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+const DEADLINE_HOURS = 24;
+
+function getDeadlineMs(updatedAt: string) {
+  return new Date(updatedAt).getTime() + DEADLINE_HOURS * 60 * 60 * 1000;
+}
+
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return 'Prazo encerrado';
+  const totalMin = Math.floor(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h > 0) return `${h}h ${m}min`;
+  return `${m}min`;
+}
+
+type DeadlineStatus = 'ok' | 'warning' | 'critical' | 'overdue';
+
+function getDeadlineStatus(msRemaining: number): DeadlineStatus {
+  if (msRemaining <= 0) return 'overdue';
+  if (msRemaining <= 6 * 60 * 60 * 1000) return 'critical';
+  if (msRemaining <= 12 * 60 * 60 * 1000) return 'warning';
+  return 'ok';
+}
+
+function useNow(intervalMs = 60000) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+  return now;
+}
+
+function DeadlineBadge({ updatedAt, now }: { updatedAt: string; now: number }) {
+  const deadlineMs = getDeadlineMs(updatedAt);
+  const msRemaining = deadlineMs - now;
+  const status = getDeadlineStatus(msRemaining);
+
+  const config: Record<DeadlineStatus, { icon: React.ReactNode; className: string }> = {
+    ok: {
+      icon: <Clock className="w-3 h-3" />,
+      className: 'bg-slate-100 text-slate-600 border-slate-300',
+    },
+    warning: {
+      icon: <AlertTriangle className="w-3 h-3" />,
+      className: 'bg-amber-50 text-amber-700 border-amber-300',
+    },
+    critical: {
+      icon: <AlertTriangle className="w-3 h-3" />,
+      className: 'bg-red-50 text-red-700 border-red-300',
+    },
+    overdue: {
+      icon: <XCircle className="w-3 h-3" />,
+      className: 'bg-red-100 text-red-800 border-red-400',
+    },
+  };
+
+  const { icon, className } = config[status];
+
+  return (
+    <span className={cn('inline-flex items-center gap-1 text-[11px] font-semibold border rounded-full px-2 py-0.5', className)}>
+      {icon}
+      {formatCountdown(msRemaining)}
+    </span>
+  );
+}
+
+function DeadlineAlert({ updatedAt, now }: { updatedAt: string; now: number }) {
+  const deadlineMs = getDeadlineMs(updatedAt);
+  const msRemaining = deadlineMs - now;
+  const status = getDeadlineStatus(msRemaining);
+
+  if (status === 'ok') return null;
+
+  const isOverdue = status === 'overdue';
+
+  return (
+    <div className={cn(
+      'flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium border',
+      isOverdue
+        ? 'bg-red-50 text-red-800 border-red-200'
+        : status === 'critical'
+          ? 'bg-red-50 text-red-700 border-red-200'
+          : 'bg-amber-50 text-amber-800 border-amber-200',
+    )}>
+      {isOverdue
+        ? <XCircle className="w-4 h-4 shrink-0" />
+        : <AlertTriangle className="w-4 h-4 shrink-0" />}
+      <span>
+        {isOverdue
+          ? `Prazo de ${DEADLINE_HOURS}h encerrado — este ticket deve ser fechado.`
+          : `Atenção: apenas ${formatCountdown(msRemaining)} restantes antes do encerramento automático.`}
+      </span>
+    </div>
+  );
+}
 
 type Ticket = {
   id: string;
@@ -97,6 +194,7 @@ function AvatarInitials({ name, size = 'md' }: { name: string; size?: 'sm' | 'md
 export default function AdminSacPage() {
   const { user, shareholders } = useAuth();
   const { toast } = useToast();
+  const now = useNow(60000);
 
   // Raw ticket data (no owner info yet)
   const [rawTickets, setRawTickets] = useState<Omit<Ticket, 'owner_name' | 'owner_email' | 'owner_pedido'>[]>([]);
@@ -232,15 +330,26 @@ export default function AdminSacPage() {
 
   const TicketCard = ({ ticket }: { ticket: Ticket }) => {
     const name = ticket.owner_name || `uid:${ticket.user_id.slice(0, 8)}`;
+    const isOpen = ticket.status === 'aberto';
+    const deadlineStatus = isOpen ? getDeadlineStatus(getDeadlineMs(ticket.updated_at) - now) : null;
+    const isUrgent = deadlineStatus === 'critical' || deadlineStatus === 'overdue';
     return (
       <button
         onClick={() => openTicket(ticket)}
-        className="w-full text-left rounded-xl border bg-card px-4 py-3.5 hover:bg-muted/40 hover:shadow-sm transition-all flex items-center gap-3"
+        className={cn(
+          'w-full text-left rounded-xl border bg-card px-4 py-3.5 hover:bg-muted/40 hover:shadow-sm transition-all flex items-center gap-3',
+          isUrgent && 'border-red-300 bg-red-50/40 hover:bg-red-50/60',
+        )}
       >
         <AvatarInitials name={name} size="md" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground leading-tight line-clamp-1">{name}</p>
           <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{ticket.assunto}</p>
+          {isOpen && (
+            <div className="mt-1.5">
+              <DeadlineBadge updatedAt={ticket.updated_at} now={now} />
+            </div>
+          )}
         </div>
         <div className="shrink-0 text-right space-y-1">
           <div className="flex items-center justify-end gap-1.5">
@@ -374,6 +483,9 @@ export default function AdminSacPage() {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground text-left">Aberto em {fmtFull(selectedTicket.created_at)}</p>
+                {selectedTicket.status === 'aberto' && (
+                  <DeadlineAlert updatedAt={selectedTicket.updated_at} now={now} />
+                )}
               </SheetHeader>
 
               {/* Messages */}

@@ -234,7 +234,7 @@ export default function ShareholderHome() {
     fetch('https://modocorreapp.com.br/api/1.1/wf/pool_financeiro', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pool: currentShareholder.idGrupo }),
+      body: JSON.stringify({ pool: currentShareholder.idGrupo, locadora: currentShareholder.idLocadora }),
     })
       .then(r => r.json())
       .then(d => setPoolData(d.response ?? d))

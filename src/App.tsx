@@ -20,10 +20,16 @@ import AdminListPage from "./pages/AdminListPage";
 import AdminRegisterPage from "./pages/AdminRegisterPage";
 import AdminRegisterViewerPage from "./pages/AdminRegisterViewerPage";
 import AdminRegisterAdminPage from "./pages/AdminRegisterAdminPage";
-import AdminOnboardingPage from "./pages/AdminOnboardingPage";
 import AdminDocumentosPage from "./pages/AdminDocumentosPage";
 import AdminEquipePage from "./pages/AdminEquipePage";
 import AdminSacPage from "./pages/AdminSacPage";
+import AdminPedidosPage from "./pages/AdminPedidosPage";
+import AdminAcionistaPage from "./pages/AdminAcionistaPage";
+import AdminSwaggerPage from "./pages/AdminSwaggerPage";
+import AdminOnboardingPage from "./pages/AdminOnboardingPage";
+import AdminFinanceiroPage from "./pages/AdminFinanceiroPage";
+import AdminVeiculosRecebidosPage from "./pages/AdminVeiculosRecebidosPage";
+import OnboardingPendingScreen from "./components/OnboardingPendingScreen";
 import SacPage from "./pages/SacPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import NotFound from "./pages/NotFound";
@@ -31,7 +37,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function AppRoutes() {
-  const { role, loading } = useAuth();
+  const { role, loading, onboardingPending } = useAuth();
 
   if (loading) {
     return (
@@ -62,9 +68,14 @@ function AppRoutes() {
           <Route path="/admin/cadastrar" element={<AdminRegisterPage />} />
           <Route path="/admin/cadastrar-visualizador" element={<AdminRegisterViewerPage />} />
           <Route path="/admin/cadastrar-admin" element={<AdminRegisterAdminPage />} />
-          <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
           <Route path="/admin/documentos" element={<AdminDocumentosPage />} />
           <Route path="/admin/sac" element={<AdminSacPage />} />
+          <Route path="/admin/pedidos" element={<AdminPedidosPage />} />
+          <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
+          <Route path="/admin/financeiro" element={<AdminFinanceiroPage />} />
+          <Route path="/admin/veiculos" element={<AdminVeiculosRecebidosPage />} />
+          <Route path="/admin/acionista/:id" element={<AdminAcionistaPage />} />
+          <Route path="/admin/api" element={<AdminSwaggerPage />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </PortalLayout>
@@ -79,9 +90,14 @@ function AppRoutes() {
           <Route path="/admin/equipe" element={<AdminEquipePage />} />
           <Route path="/admin/cadastrar" element={<AdminRegisterPage />} />
           <Route path="/admin/cadastrar-visualizador" element={<AdminRegisterViewerPage />} />
-          <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
           <Route path="/admin/documentos" element={<AdminDocumentosPage />} />
           <Route path="/admin/sac" element={<AdminSacPage />} />
+          <Route path="/admin/pedidos" element={<AdminPedidosPage />} />
+          <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
+          <Route path="/admin/financeiro" element={<AdminFinanceiroPage />} />
+          <Route path="/admin/veiculos" element={<AdminVeiculosRecebidosPage />} />
+          <Route path="/admin/acionista/:id" element={<AdminAcionistaPage />} />
+          <Route path="/admin/api" element={<AdminSwaggerPage />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </PortalLayout>
@@ -93,9 +109,8 @@ function AppRoutes() {
       <PortalLayout type="admin">
         <Routes>
           <Route path="/admin" element={<AdminListPage />} />
-          <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
           <Route path="/admin/documentos" element={<AdminDocumentosPage />} />
-          <Route path="/admin/sac" element={<AdminSacPage />} />
+          <Route path="/admin/acionista/:id" element={<AdminAcionistaPage />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </PortalLayout>
@@ -107,9 +122,11 @@ function AppRoutes() {
       <PortalLayout type="admin">
         <Routes>
           <Route path="/admin" element={<AdminListPage />} />
-          <Route path="/admin/cadastrar" element={<AdminRegisterPage />} />
+          <Route path="/admin/documentos" element={<AdminDocumentosPage />} />
+          <Route path="/admin/pedidos" element={<AdminPedidosPage />} />
           <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
-          <Route path="/admin/sac" element={<AdminSacPage />} />
+          <Route path="/admin/financeiro" element={<AdminFinanceiroPage />} />
+          <Route path="/admin/acionista/:id" element={<AdminAcionistaPage />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </PortalLayout>
@@ -121,8 +138,11 @@ function AppRoutes() {
       <PortalLayout type="admin">
         <Routes>
           <Route path="/admin" element={<AdminListPage />} />
+          <Route path="/admin/documentos" element={<AdminDocumentosPage />} />
           <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
           <Route path="/admin/sac" element={<AdminSacPage />} />
+          <Route path="/admin/veiculos" element={<AdminVeiculosRecebidosPage />} />
+          <Route path="/admin/acionista/:id" element={<AdminAcionistaPage />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </PortalLayout>
@@ -133,12 +153,20 @@ function AppRoutes() {
     return (
       <PortalLayout type="admin">
         <Routes>
-          <Route path="/admin" element={<AdminListPage />} />
           <Route path="/admin/documentos" element={<AdminDocumentosPage />} />
           <Route path="/admin/sac" element={<AdminSacPage />} />
-          <Route path="*" element={<Navigate to="/admin" replace />} />
+          <Route path="/admin/veiculos" element={<AdminVeiculosRecebidosPage />} />
+          <Route path="*" element={<Navigate to="/admin/sac" replace />} />
         </Routes>
       </PortalLayout>
+    );
+  }
+
+  if (onboardingPending) {
+    return (
+      <Routes>
+        <Route path="*" element={<OnboardingPendingScreen />} />
+      </Routes>
     );
   }
 

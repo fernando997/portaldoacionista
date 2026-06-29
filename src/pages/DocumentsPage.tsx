@@ -16,6 +16,26 @@ interface DocItem {
   origem?: 'admin' | 'onboarding' | 'api';
 }
 
+interface ArquivoInvestidor {
+  id: string;
+  tipo: string;
+  nome: string | null;
+  file_url: string;
+  created_at: string;
+}
+
+const tipoArquivoLabels: Record<string, string> = {
+  rg_cnh: 'RG / CNH',
+  comprovante_residencia: 'Comprovante de Residência',
+  precontrato: 'Pré Contrato',
+  contrato: 'Contrato',
+  cnpj: 'CNPJ',
+  certificado_digital: 'Certificado Digital',
+  cnh: 'CNH',
+  procuracao: 'Procuração',
+  outro: 'Outro',
+};
+
 const documentsList: DocItem[] = [
   { id: 1, nome: 'Pré Contrato',       tipo: 'Contrato',     data: '', apiKey: 'precontrato' },
   { id: 2, nome: 'Contrato',           tipo: 'Contrato',     data: '', apiKey: 'contrato' },
@@ -36,6 +56,7 @@ export default function DocumentsPage() {
   const { currentShareholder } = useAuth();
   const [viewing, setViewing] = useState<DocItem | null>(null);
   const [docs, setDocs] = useState<DocItem[]>(documentsList);
+  const [arquivos, setArquivos] = useState<ArquivoInvestidor[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,29 +68,51 @@ export default function DocumentsPage() {
       // Mapa acumulador: apiKey → { fileUrl, origem }
       const urlMap: Record<string, { fileUrl: string; origem: 'admin' | 'onboarding' | 'api' }> = {};
 
-      // 1. API externa
-      if (idPedido && idLocadora) {
+      // Buscar investidor_id pelo profile_id do acionista logado
+      let investidorId: string | null = null;
+      try {
+        const { data: inv } = await (supabase as any)
+          .from('investidores')
+          .select('id')
+          .eq('profile_id', currentShareholder.id)
+          .maybeSingle();
+        investidorId = inv?.id ?? null;
+      } catch {
+        // silencioso
+      }
+
+      // 1. Documentos de investidor_arquivos por investidor_id (mesmo que o admin vê)
+      if (investidorId) {
         try {
-          const res = await fetch('https://modocorreapp.com.br/api/1.1/wf/Pool_docs', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pedido: idPedido, locadora: idLocadora }),
-          });
-          const data = await res.json();
-          const response = data.response || {};
-          for (const doc of documentsList) {
-            const value = response[doc.apiKey];
-            if (value && typeof value === 'string') {
-              const url = value.startsWith('//') ? `https:${value}` : value;
-              urlMap[doc.apiKey] = { fileUrl: url, origem: 'api' };
+          const { data: arqsByInv } = await (supabase as any)
+            .from('investidor_arquivos')
+            .select('id, tipo, nome, file_url, created_at')
+            .eq('investidor_id', investidorId)
+            .order('created_at', { ascending: false });
+
+          if (arqsByInv) {
+            const tipoToApiKey: Record<string, string> = {
+              precontrato: 'precontrato',
+              contrato: 'contrato',
+              cnpj: 'cnpj',
+              certificado_digital: 'certificadodigital',
+              cnh: 'cnh',
+              procuracao: 'procuracao',
+            };
+            for (const arq of arqsByInv as { id: string; tipo: string; nome: string | null; file_url: string; created_at: string }[]) {
+              const apiKey = tipoToApiKey[arq.tipo];
+              if (apiKey) {
+                urlMap[apiKey] = { fileUrl: arq.file_url, origem: 'admin' };
+              }
             }
+            setArquivos(arqsByInv);
           }
         } catch {
-          // silencioso — API externa pode falhar
+          // silencioso
         }
       }
 
-      // 2. Dados do onboarding (sobrescreve API)
+      // 2. Dados do onboarding (sobrescreve)
       if (idPedido) {
         try {
           const { data: onb } = await supabase
@@ -113,11 +156,12 @@ export default function DocumentsPage() {
           return found ? { ...doc, fileUrl: found.fileUrl, origem: found.origem } : doc;
         })
       );
+
       setLoading(false);
     };
 
     fetchDocs();
-  }, [currentShareholder.idPedido, currentShareholder.idLocadora]);
+  }, [currentShareholder.id, currentShareholder.idPedido, currentShareholder.idLocadora]);
 
   const handleDownload = (doc: DocItem) => {
     if (doc.fileUrl) {
@@ -188,6 +232,42 @@ export default function DocumentsPage() {
           );
         })}
       </div>
+
+      {/* Documentos adicionais (tipos não cobertos pela lista fixa) */}
+      {arquivos.filter(a => !['precontrato','contrato','cnpj','certificado_digital','cnh','procuracao'].includes(a.tipo)).length > 0 && (
+        <div className="animate-fade-in" style={{ animationDelay: '0.2s', opacity: 0 }}>
+          <p className="text-sm font-semibold text-muted-foreground mb-3">Documentos Adicionais</p>
+          <div className="grid gap-3">
+            {arquivos.filter(a => !['precontrato','contrato','cnpj','certificado_digital','cnh','procuracao'].includes(a.tipo)).map((arq) => (
+              <div
+                key={arq.id}
+                className="bg-card rounded-xl border p-5 flex items-center justify-between transition-all group hover:shadow-md"
+                style={{ boxShadow: 'var(--shadow-card)' }}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-xl bg-primary/5 group-hover:bg-primary/10 transition-colors">
+                    <FileText className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">{arq.nome ?? tipoArquivoLabels[arq.tipo] ?? arq.tipo}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="secondary" className="text-xs font-medium">{tipoArquivoLabels[arq.tipo] ?? arq.tipo}</Badge>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => window.open(arq.file_url, '_blank')} className="text-muted-foreground hover:text-foreground">
+                    <Eye className="h-4 w-4 mr-1.5" /> Visualizar
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => window.open(arq.file_url, '_blank')}>
+                    <Download className="h-4 w-4 mr-1.5" /> Download
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <Dialog open={!!viewing} onOpenChange={() => setViewing(null)}>
         <DialogContent className="max-w-lg">

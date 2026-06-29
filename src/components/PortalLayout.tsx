@@ -170,13 +170,17 @@ export default function PortalLayout({ children, type }: PortalLayoutProps) {
                   className="text-sm text-foreground leading-none"
                   style={{ fontFamily: 'var(--font-body)', fontWeight: 600 }}
                 >
-                  {type === 'admin' ? 'Administrador' : currentShareholder.name}
+                  {type === 'admin'
+                    ? ({ superadmin: 'Super Admin', admin: 'Admin', viewer: 'Visualizador', vendedor: 'Vendedor', sac: 'SAC', suporte: 'Suporte' }[role as string] || 'Admin')
+                    : currentShareholder.name}
                 </p>
                 <p
                   className="text-[11px] text-muted-foreground mt-0.5"
                   style={{ fontFamily: 'var(--font-body)', fontWeight: 400 }}
                 >
-                  {type === 'admin' ? 'Acesso total' : currentShareholder.group}
+                  {type === 'admin'
+                    ? ({ superadmin: 'Acesso máximo', admin: 'Acesso total', viewer: 'Somente leitura', vendedor: 'Equipe de vendas', sac: 'Atendimento', suporte: 'Suporte técnico' }[role as string] || 'Acesso total')
+                    : currentShareholder.group}
                 </p>
               </div>
             </div>

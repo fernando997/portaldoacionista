@@ -7,8 +7,13 @@ import { Label } from '@/components/ui/label';
 import {
   Loader2, Upload, CheckCircle2, FileText, AlertCircle,
   ShieldCheck, IdCard, FileCheck, Send, Eye, EyeOff, Cloud,
-  CreditCard, ExternalLink, RefreshCw, Clock,
+  CreditCard, ExternalLink, RefreshCw, Clock, Mail, Landmark,
 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import logo from '@/assets/logo.png';
 import { cn } from '@/lib/utils';
@@ -87,54 +92,6 @@ function FileUploadBox({ file, savedUrl, uploading, onChange, id, accept, hint }
   );
 }
 
-/* ─── StepCard ────────────────────────────────────────────────── */
-
-function StepCard({ step, icon: Icon, title, done, saving, children }: {
-  step: number; icon: React.ElementType; title: string;
-  done: boolean; saving?: boolean; children: React.ReactNode;
-}) {
-  return (
-    <div className={cn(
-      'bg-white rounded-2xl border shadow-sm overflow-hidden transition-all duration-300',
-      done ? 'border-emerald-400/40' : 'border-border',
-    )}>
-      {/* Left accent */}
-      <div className={cn('h-1 w-full', done ? 'bg-emerald-500' : 'bg-border')} />
-      <div className="p-5 space-y-4">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className={cn(
-            'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold',
-            done ? 'bg-emerald-500/15 text-emerald-600' : 'bg-primary/8 text-primary',
-          )}>
-            {done ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Icon className="w-5 h-5" />}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Etapa {step}</span>
-            </div>
-            <p className="font-semibold text-sm text-foreground leading-tight">{title}</p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {saving && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
-            {done && !saving && (
-              <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                Concluído
-              </span>
-            )}
-            {!done && !saving && (
-              <span className="text-[11px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                Pendente
-              </span>
-            )}
-          </div>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
 /* ─── Página principal ────────────────────────────────────────── */
 
 export default function OnboardingPage() {
@@ -149,6 +106,8 @@ export default function OnboardingPage() {
   const [pedidoId, setPedidoId] = useState('');
   const [clienteNome, setClienteNome] = useState('');
 
+  const [currentStep, setCurrentStep] = useState(0);
+
   const [cnpj, setCnpj] = useState('');
   const [senhaCertificado, setSenhaCertificado] = useState('');
   const [showSenha, setShowSenha] = useState(false);
@@ -159,6 +118,16 @@ export default function OnboardingPage() {
   const [savedCertificadoUrl, setSavedCertificadoUrl] = useState<string | null>(null);
   const [savedCnhUrl, setSavedCnhUrl] = useState<string | null>(null);
   const [savedProcuracaoUrl, setSavedProcuracaoUrl] = useState<string | null>(null);
+
+  // Endereco
+  const [cep, setCep] = useState('');
+  const [rua, setRua] = useState('');
+  const [numeroCasa, setNumeroCasa] = useState('');
+  const [complemento, setComplemento] = useState('');
+  const [bairro, setBairro] = useState('');
+  const [cidade, setCidade] = useState('');
+  const [estado, setEstado] = useState('');
+  const [buscandoCep, setBuscandoCep] = useState(false);
 
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<string>('GERADO');
@@ -172,8 +141,21 @@ export default function OnboardingPage() {
   const [savingCnpj, setSavingCnpj] = useState(false);
   const [savingSenha, setSavingSenha] = useState(false);
 
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [creatingEmail, setCreatingEmail] = useState(false);
+  const [emailCriado, setEmailCriado] = useState<string | null>(null);
+
+  // Conta Asaas
+  const [asaasPixAuto, setAsaasPixAuto] = useState(true);
+  const [asaasWebhookVencimento, setAsaasWebhookVencimento] = useState(true);
+  const [asaasWebhookPagamento, setAsaasWebhookPagamento] = useState(true);
+  const [asaasWebhookTransferencia, setAsaasWebhookTransferencia] = useState(true);
+  const [asaasConfirmado, setAsaasConfirmado] = useState(false);
+  const [savingAsaas, setSavingAsaas] = useState(false);
+
   const cnpjTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const senhaTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const enderecoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const draftKey = token ? `ob_draft_${token}` : null;
 
@@ -193,6 +175,23 @@ export default function OnboardingPage() {
       .replace(/\.(\d{3})(\d)/, '.$1/$2')
       .replace(/(\d{4})(\d)/, '$1-$2');
   };
+
+  async function buscarCep(cepValue: string) {
+    const clean = cepValue.replace(/\D/g, '');
+    if (clean.length !== 8) return;
+    setBuscandoCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${clean}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setRua(data.logradouro || '');
+        setBairro(data.bairro || '');
+        setCidade(data.localidade || '');
+        setEstado(data.uf || '');
+      }
+    } catch {}
+    setBuscandoCep(false);
+  }
 
   const fetchPaymentUrl = async (pedido: string, reqId: string) => {
     setLoadingPayment(true);
@@ -240,6 +239,31 @@ export default function OnboardingPage() {
           if ((data as any).payment_descricao) setPaymentDescricao((data as any).payment_descricao);
         }
 
+        // Email criado — se já existe, iniciar no passo 2 (Asaas)
+        if ((data as any).email_corporativo) {
+          setEmailCriado((data as any).email_corporativo);
+          setCurrentStep(1);
+        }
+
+        // Asaas config — restaurar checkboxes e estado de confirmação
+        if ((data as any).asaas_config) {
+          const cfg = (data as any).asaas_config;
+          if (cfg.pixAuto !== undefined) setAsaasPixAuto(cfg.pixAuto);
+          if (cfg.webhookVencido !== undefined) setAsaasWebhookVencimento(cfg.webhookVencido);
+          if (cfg.webhookPagamento !== undefined) setAsaasWebhookPagamento(cfg.webhookPagamento);
+          if (cfg.webhookTransferencia !== undefined) setAsaasWebhookTransferencia(cfg.webhookTransferencia);
+          setAsaasConfirmado(true);
+        }
+
+        // Endereco
+        if ((data as any).cep) setCep((data as any).cep);
+        if ((data as any).rua) setRua((data as any).rua);
+        if ((data as any).numero) setNumeroCasa((data as any).numero);
+        if ((data as any).complemento) setComplemento((data as any).complemento);
+        if ((data as any).bairro) setBairro((data as any).bairro);
+        if ((data as any).cidade) setCidade((data as any).cidade);
+        if ((data as any).estado) setEstado((data as any).estado);
+
         // Carrega CNPJ e senha: DB tem prioridade, localStorage é fallback
         const dKey = `ob_draft_${token}`;
         let draftCnpj = '';
@@ -283,6 +307,7 @@ export default function OnboardingPage() {
   const cnpjDigits = cnpj.replace(/\D/g, '');
   const cnpjValido = cnpjDigits.length === 14;
 
+  // Auto-save CNPJ
   useEffect(() => {
     if (!requestId || !cnpj.trim()) return;
     if (cnpjTimerRef.current) clearTimeout(cnpjTimerRef.current);
@@ -295,6 +320,7 @@ export default function OnboardingPage() {
     return () => { if (cnpjTimerRef.current) clearTimeout(cnpjTimerRef.current); };
   }, [cnpj, requestId]);
 
+  // Auto-save senha
   useEffect(() => {
     if (!requestId || !senhaCertificado.trim()) return;
     if (senhaTimerRef.current) clearTimeout(senhaTimerRef.current);
@@ -306,6 +332,19 @@ export default function OnboardingPage() {
     }, 1000);
     return () => { if (senhaTimerRef.current) clearTimeout(senhaTimerRef.current); };
   }, [senhaCertificado, requestId]);
+
+  // Auto-save endereco
+  useEffect(() => {
+    if (!requestId) return;
+    if (!cep && !rua && !numeroCasa && !complemento && !bairro && !cidade && !estado) return;
+    if (enderecoTimerRef.current) clearTimeout(enderecoTimerRef.current);
+    enderecoTimerRef.current = setTimeout(async () => {
+      await supabase.from('onboarding_requests')
+        .update({ cep, rua, numero: numeroCasa, complemento, bairro, cidade, estado } as any)
+        .eq('id', requestId);
+    }, 1000);
+    return () => { if (enderecoTimerRef.current) clearTimeout(enderecoTimerRef.current); };
+  }, [cep, rua, numeroCasa, complemento, bairro, cidade, estado, requestId]);
 
   const uploadFile = async (file: File, folder: string) => {
     const ext = file.name.split('.').pop();
@@ -337,22 +376,88 @@ export default function OnboardingPage() {
     }
   };
 
+  const handleCreateEmail = async () => {
+    setCreatingEmail(true);
+    const digits = cnpj.replace(/\D/g, '');
+    const fallbackEmail = `${digits}@modocorreinvest.com.br`;
+
+    // Monta URL da Edge Function via fetch direto (para controle total da resposta)
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://dmcsfceqxffajewahjgj.supabase.co';
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const fnUrl = `${supabaseUrl}/functions/v1/criar-email-cpanel`;
+    const payload = { cnpj };
+
+    // Loga curl equivalente para debug
+    console.log(`[criar-email] curl -X POST "${fnUrl}" -H "Content-Type: application/json" -H "Authorization: Bearer ${supabaseKey}" -d '${JSON.stringify(payload)}'`);
+
+    try {
+      const res = await fetch(fnUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const body = await res.json();
+      console.log('[criar-email] response:', res.status, body);
+
+      if (!res.ok || body.error) {
+        const msg = body.error || `HTTP ${res.status}`;
+        // Se o email já existe no cPanel, tratar como sucesso
+        if (msg.includes('already') || msg.includes('já exist')) {
+          const email = body.email || fallbackEmail;
+          setEmailCriado(email);
+          await supabase.from('onboarding_requests')
+            .update({ email_corporativo: email } as any)
+            .eq('id', requestId);
+          toast.info(`E-mail já existia: ${email}`);
+          setShowEmailDialog(false);
+          setCurrentStep(1);
+          return;
+        }
+        throw new Error(msg);
+      }
+
+      const email = body.email || fallbackEmail;
+      setEmailCriado(email);
+
+      await supabase.from('onboarding_requests')
+        .update({ email_corporativo: email } as any)
+        .eq('id', requestId);
+
+      toast.success(`E-mail criado: ${email}`);
+      setShowEmailDialog(false);
+      setCurrentStep(1);
+    } catch (err: any) {
+      console.error('[handleCreateEmail]', err);
+      toast.error('Erro ao criar e-mail: ' + (err.message || ''));
+    } finally {
+      setCreatingEmail(false);
+    }
+  };
+
   const isPago = paymentStatus?.toUpperCase() === 'PAGO';
 
   const steps = [
-    { id: 'cnpj',    done: cnpjValido },
+    { id: 'dados',   done: cnpjValido && cep.replace(/\D/g, '').length === 8 && rua.trim() !== '' && cidade.trim() !== '' },
+    { id: 'asaas',   done: asaasConfirmado },
     { id: 'cert',    done: !!(savedCertificadoUrl || certificadoFile) && senhaCertificado.trim().length > 0 },
     { id: 'cnh',     done: !!(savedCnhUrl || cnhFile) },
     { id: 'proc',    done: !!(savedProcuracaoUrl || procuracaoFile) },
     { id: 'payment', done: isPago },
   ];
 
-  const progressPercent = useMemo(() => Math.round((steps.filter(s => s.done).length / 5) * 100), [
-    cnpjValido, savedCertificadoUrl, certificadoFile, senhaCertificado,
+  const stepLabels = ['Dados', 'Conta Asaas', 'Certificado', 'CNH', 'Procuração', 'Pagamento'];
+  const stepIcons = [ShieldCheck, Landmark, FileCheck, IdCard, FileText, CreditCard];
+
+  const progressPercent = useMemo(() => Math.round((steps.filter(s => s.done).length / 6) * 100), [
+    cnpjValido, cep, rua, cidade, emailCriado, asaasConfirmado, savedCertificadoUrl, certificadoFile, senhaCertificado,
     savedCnhUrl, cnhFile, savedProcuracaoUrl, procuracaoFile, isPago,
   ]);
 
-  const docsFilled = steps.slice(0, 4).every(s => s.done);
+  const docsFilled = steps.slice(0, 5).every(s => s.done);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -396,6 +501,279 @@ export default function OnboardingPage() {
     }
   };
 
+  /* ── Render helpers por etapa ── */
+
+  function renderStepDados() {
+    return (
+      <div className="space-y-4">
+        <div>
+          <Label className="text-sm font-semibold">CNPJ da Empresa</Label>
+          <Input
+            placeholder="00.000.000/0000-00"
+            value={cnpj}
+            onChange={(e) => setCnpj(formatCnpj(e.target.value))}
+            maxLength={18}
+            className="h-12 text-base font-mono tracking-wider mt-1.5"
+          />
+          {savingCnpj && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Salvando...</p>}
+        </div>
+
+        {emailCriado && (
+          <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+            <Mail className="w-4 h-4 text-emerald-500 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs text-emerald-600 font-medium">E-mail corporativo criado</p>
+              <p className="text-sm font-mono font-semibold text-emerald-700 truncate">{emailCriado}</p>
+            </div>
+          </div>
+        )}
+
+        {cnpjValido && (
+          <>
+            <div>
+              <Label className="text-sm font-semibold">CEP</Label>
+              <div className="relative mt-1.5">
+                <Input
+                  placeholder="00000-000"
+                  value={cep}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 8)
+                      .replace(/^(\d{5})(\d)/, '$1-$2');
+                    setCep(v);
+                    if (v.replace(/\D/g, '').length === 8) buscarCep(v);
+                  }}
+                  maxLength={9}
+                  className="h-12 text-base font-mono tracking-wider"
+                />
+                {buscandoCep && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />}
+              </div>
+            </div>
+
+            {(rua || cidade) && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <Label className="text-sm font-semibold">Rua</Label>
+                  <Input value={rua} onChange={(e) => setRua(e.target.value)} className="mt-1.5" />
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold">Numero</Label>
+                  <Input value={numeroCasa} onChange={(e) => setNumeroCasa(e.target.value)} placeholder="123" className="mt-1.5" />
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold">Complemento</Label>
+                  <Input value={complemento} onChange={(e) => setComplemento(e.target.value)} placeholder="Apto, sala..." className="mt-1.5" />
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold">Bairro</Label>
+                  <Input value={bairro} onChange={(e) => setBairro(e.target.value)} className="mt-1.5" />
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold">Cidade</Label>
+                  <Input value={cidade} onChange={(e) => setCidade(e.target.value)} className="mt-1.5" />
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold">Estado</Label>
+                  <Input value={estado} onChange={(e) => setEstado(e.target.value)} maxLength={2} placeholder="UF" className="mt-1.5" />
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
+
+  function renderStepAsaas() {
+    const cnpjFormatado = cnpj || cnpj.replace(/\D/g, '');
+    const enderecoCompleto = [rua, numeroCasa, complemento, bairro, cidade, estado ? `${estado}` : '', cep]
+      .filter(Boolean).join(', ');
+
+    return (
+      <div className="space-y-4">
+        <div className="bg-muted/40 rounded-xl border border-border p-4 space-y-2">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">CNPJ</p>
+            <p className="text-sm font-mono font-semibold text-foreground">{cnpjFormatado}</p>
+          </div>
+          {emailCriado && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">E-mail Corporativo</p>
+              <p className="text-sm font-mono font-semibold text-foreground">{emailCriado}</p>
+            </div>
+          )}
+          {enderecoCompleto && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Endereço</p>
+              <p className="text-sm text-foreground">{enderecoCompleto}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-foreground">Configurações da Conta</p>
+          <div className="space-y-2.5">
+            <label className={cn('flex items-center gap-2.5', asaasConfirmado ? 'cursor-default opacity-70' : 'cursor-pointer')}>
+              <Checkbox checked={asaasWebhookVencimento} onCheckedChange={(v) => setAsaasWebhookVencimento(!!v)} disabled={asaasConfirmado} />
+              <span className="text-sm text-foreground">Ativar webhook de vencimento</span>
+            </label>
+            <label className={cn('flex items-center gap-2.5', asaasConfirmado ? 'cursor-default opacity-70' : 'cursor-pointer')}>
+              <Checkbox checked={asaasWebhookPagamento} onCheckedChange={(v) => setAsaasWebhookPagamento(!!v)} disabled={asaasConfirmado} />
+              <span className="text-sm text-foreground">Ativar webhook de pagamento</span>
+            </label>
+            <label className={cn('flex items-center gap-2.5', asaasConfirmado ? 'cursor-default opacity-70' : 'cursor-pointer')}>
+              <Checkbox checked={asaasWebhookTransferencia} onCheckedChange={(v) => setAsaasWebhookTransferencia(!!v)} disabled={asaasConfirmado} />
+              <span className="text-sm text-foreground">Ativar webhook de transferência concluída</span>
+            </label>
+          </div>
+        </div>
+
+        {asaasConfirmado ? (
+          <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+            <p className="text-sm font-semibold text-emerald-700">Configurações confirmadas</p>
+          </div>
+        ) : (
+          <Button
+            onClick={async () => {
+              setSavingAsaas(true);
+              const config = {
+                pixAuto: asaasPixAuto,
+                webhookVencido: asaasWebhookVencimento,
+                webhookPagamento: asaasWebhookPagamento,
+                webhookTransferencia: asaasWebhookTransferencia,
+              };
+              const { error } = await supabase.from('onboarding_requests')
+                .update({ asaas_config: config } as any)
+                .eq('id', requestId);
+              if (error) {
+                toast.error('Erro ao salvar configurações: ' + error.message);
+              } else {
+                setAsaasConfirmado(true);
+                toast.success('Configurações da conta Asaas confirmadas!');
+              }
+              setSavingAsaas(false);
+            }}
+            disabled={savingAsaas}
+            className="w-full h-11 rounded-xl font-semibold gradient-accent shadow-lg shadow-accent/20 gap-2"
+          >
+            {savingAsaas ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Salvando...</>
+            ) : (
+              <><Landmark className="w-4 h-4" /> Confirmar e Criar Conta</>
+            )}
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  function renderStepCertificado() {
+    return (
+      <div className="space-y-4">
+        <FileUploadBox
+          file={certificadoFile} savedUrl={savedCertificadoUrl} uploading={uploadingCert}
+          id="cert-file" accept=".pfx,.p12,.cer,.crt" hint="Formatos: .pfx, .p12, .cer, .crt"
+          onChange={(f) => { setCertificadoFile(f); handleFileChange(f, 'certificado', 'certificado_digital_url', setSavedCertificadoUrl, setUploadingCert); }}
+        />
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-semibold">Senha do Certificado</Label>
+            {senhaCertificado.trim() && !savingSenha && (
+              <span className="text-[11px] text-emerald-600 font-medium">Salvo</span>
+            )}
+          </div>
+          <div className="relative">
+            <Input
+              type={showSenha ? 'text' : 'password'}
+              placeholder="••••••••"
+              value={senhaCertificado}
+              onChange={(e) => setSenhaCertificado(e.target.value)}
+              className="h-12 text-base pr-12"
+            />
+            <button
+              type="button"
+              onClick={() => setShowSenha(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {showSenha ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderStepCnh() {
+    return (
+      <FileUploadBox
+        file={cnhFile} savedUrl={savedCnhUrl} uploading={uploadingCnh}
+        id="cnh-file" accept="image/*,.pdf" hint="Imagem ou PDF da CNH"
+        onChange={(f) => { setCnhFile(f); handleFileChange(f, 'cnh', 'cnh_url', setSavedCnhUrl, setUploadingCnh); }}
+      />
+    );
+  }
+
+  function renderStepProcuracao() {
+    return (
+      <FileUploadBox
+        file={procuracaoFile} savedUrl={savedProcuracaoUrl} uploading={uploadingProc}
+        id="proc-file" accept=".pdf,.doc,.docx,image/*" hint="PDF, DOC ou imagem"
+        onChange={(f) => { setProcuracaoFile(f); handleFileChange(f, 'procuracao', 'procuracao_url', setSavedProcuracaoUrl, setUploadingProc); }}
+      />
+    );
+  }
+
+  function renderStepPagamento() {
+    return (
+      <div className="space-y-4">
+        {paymentDescricao && (
+          <p className="text-sm font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border">
+            {paymentDescricao}
+          </p>
+        )}
+
+        {isPago ? (
+          <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+            <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0" />
+            <p className="text-sm font-semibold text-emerald-700">Pagamento confirmado!</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {paymentUrl ? (
+              <>
+                <a href={paymentUrl} target="_blank" rel="noopener noreferrer">
+                  <Button className="w-full gap-2 bg-amber-500 hover:bg-amber-600 text-white h-11 font-semibold">
+                    <ExternalLink className="w-4 h-4" />
+                    Realizar Pagamento
+                  </Button>
+                </a>
+                <Button variant="outline" className="w-full gap-2 h-10"
+                  onClick={handleVerifyPayment} disabled={verifyingPayment}>
+                  {verifyingPayment
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Verificando...</>
+                    : <><RefreshCw className="w-4 h-4" /> Já paguei — verificar</>}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Após o pagamento, clique em "Já paguei — verificar" para continuar.
+                </p>
+              </>
+            ) : loadingPayment ? (
+              <div className="flex items-center justify-center gap-2 py-3 text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm">Carregando link de pagamento...</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 py-2 text-muted-foreground">
+                <Clock className="w-4 h-4" />
+                <span className="text-sm">Link de pagamento não disponível para este pedido.</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   /* ── Estados especiais ── */
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-[hsl(210,20%,97%)]">
@@ -417,6 +795,8 @@ export default function OnboardingPage() {
       title="Tudo pronto!"
       description="Seus documentos foram recebidos com sucesso.<br/>Entraremos em contato em breve." />
   );
+
+  const CurrentStepIcon = stepIcons[currentStep];
 
   /* ── Formulário principal ── */
   return (
@@ -455,12 +835,21 @@ export default function OnboardingPage() {
           <div className="flex items-center justify-between">
             {steps.map((s, i) => (
               <div key={s.id} className="flex items-center flex-1">
-                <div className={cn(
-                  'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-300',
-                  s.done ? 'bg-emerald-500 text-white shadow-sm' : 'bg-muted text-muted-foreground',
-                )}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (i === 0 && emailCriado) return;
+                    setCurrentStep(i);
+                  }}
+                  className={cn(
+                    'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-300',
+                    s.done ? 'bg-emerald-500 text-white shadow-sm' :
+                    i === currentStep ? 'bg-primary text-white shadow-md ring-2 ring-primary/30 scale-110' :
+                    'bg-muted text-muted-foreground',
+                  )}
+                >
                   {s.done ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
-                </div>
+                </button>
                 {i < steps.length - 1 && (
                   <div className={cn('flex-1 h-0.5 mx-1 rounded-full transition-all duration-500', s.done ? 'bg-emerald-400' : 'bg-border')} />
                 )}
@@ -468,175 +857,149 @@ export default function OnboardingPage() {
             ))}
           </div>
           <div className="flex items-center justify-between mt-2">
-            {['CNPJ', 'Certificado', 'CNH', 'Procuração', 'Pagamento'].map((label) => (
+            {stepLabels.map((label, i) => (
               <div key={label} className="flex-1 text-center">
-                <span className="text-[9px] text-muted-foreground font-medium leading-none">{label}</span>
+                <span className={cn(
+                  'text-[9px] font-medium leading-none',
+                  i === currentStep ? 'text-primary font-bold' : 'text-muted-foreground',
+                )}>{label}</span>
               </div>
             ))}
           </div>
           <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">{steps.filter(s => s.done).length} de 5 etapas concluídas</span>
+            <span className="text-xs text-muted-foreground">{steps.filter(s => s.done).length} de 6 etapas concluídas</span>
             <span className={cn('text-xs font-bold', progressPercent === 100 ? 'text-emerald-600' : 'text-foreground')}>{progressPercent}%</span>
           </div>
         </div>
 
-        {/* CNPJ */}
-        <StepCard step={1} icon={ShieldCheck} title="CNPJ da Empresa" done={cnpjValido} saving={savingCnpj}>
-          <Input
-            placeholder="00.000.000/0000-00"
-            value={cnpj}
-            onChange={(e) => setCnpj(formatCnpj(e.target.value))}
-            maxLength={18}
-            className="h-12 text-base font-mono tracking-wider"
-          />
-        </StepCard>
-
-        {/* Certificado Digital */}
-        <StepCard step={2} icon={FileCheck} title="Certificado Digital"
-          done={!!(savedCertificadoUrl || certificadoFile) && senhaCertificado.trim().length > 0}
-          saving={uploadingCert || savingSenha}>
-          <FileUploadBox
-            file={certificadoFile} savedUrl={savedCertificadoUrl} uploading={uploadingCert}
-            id="cert-file" accept=".pfx,.p12,.cer,.crt" hint="Formatos: .pfx, .p12, .cer, .crt"
-            onChange={(f) => { setCertificadoFile(f); handleFileChange(f, 'certificado', 'certificado_digital_url', setSavedCertificadoUrl, setUploadingCert); }}
-          />
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-semibold">Senha do Certificado</Label>
-              {senhaCertificado.trim() && !savingSenha && (
-                <span className="text-[11px] text-emerald-600 font-medium">Salvo</span>
-              )}
-            </div>
-            <div className="relative">
-              <Input
-                type={showSenha ? 'text' : 'password'}
-                placeholder="••••••••"
-                value={senhaCertificado}
-                onChange={(e) => setSenhaCertificado(e.target.value)}
-                className="h-12 text-base pr-12"
-              />
-              <button
-                type="button"
-                onClick={() => setShowSenha(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {showSenha ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-          </div>
-        </StepCard>
-
-        {/* CNH */}
-        <StepCard step={3} icon={IdCard} title="CNH" done={!!(savedCnhUrl || cnhFile)} saving={uploadingCnh}>
-          <FileUploadBox
-            file={cnhFile} savedUrl={savedCnhUrl} uploading={uploadingCnh}
-            id="cnh-file" accept="image/*,.pdf" hint="Imagem ou PDF da CNH"
-            onChange={(f) => { setCnhFile(f); handleFileChange(f, 'cnh', 'cnh_url', setSavedCnhUrl, setUploadingCnh); }}
-          />
-        </StepCard>
-
-        {/* Procuração */}
-        <StepCard step={4} icon={FileText} title="Procuração" done={!!(savedProcuracaoUrl || procuracaoFile)} saving={uploadingProc}>
-          <FileUploadBox
-            file={procuracaoFile} savedUrl={savedProcuracaoUrl} uploading={uploadingProc}
-            id="proc-file" accept=".pdf,.doc,.docx,image/*" hint="PDF, DOC ou imagem"
-            onChange={(f) => { setProcuracaoFile(f); handleFileChange(f, 'procuracao', 'procuracao_url', setSavedProcuracaoUrl, setUploadingProc); }}
-          />
-        </StepCard>
-
-        {/* Pagamento */}
+        {/* Current step card */}
         <div className={cn(
-          'rounded-2xl border overflow-hidden shadow-sm transition-all duration-300',
-          isPago ? 'border-emerald-400/40 bg-white' : 'border-amber-400/40 bg-white',
+          'bg-white rounded-2xl border shadow-sm overflow-hidden transition-all duration-300',
+          steps[currentStep].done ? 'border-emerald-400/40' : 'border-border',
         )}>
-          <div className={cn('h-1 w-full', isPago ? 'bg-emerald-500' : 'bg-amber-400')} />
+          <div className={cn('h-1 w-full', steps[currentStep].done ? 'bg-emerald-500' : 'bg-border')} />
           <div className="p-5 space-y-4">
+            {/* Header */}
             <div className="flex items-center gap-3">
-              <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0',
-                isPago ? 'bg-emerald-500/15' : 'bg-amber-500/15')}>
-                {isPago
-                  ? <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                  : <CreditCard className="w-5 h-5 text-amber-600" />}
+              <div className={cn(
+                'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold',
+                steps[currentStep].done ? 'bg-emerald-500/15 text-emerald-600' : 'bg-primary/8 text-primary',
+              )}>
+                {steps[currentStep].done ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <CurrentStepIcon className="w-5 h-5" />}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Etapa 5</span>
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Etapa {currentStep + 1}</span>
                 </div>
-                <p className="font-semibold text-sm text-foreground leading-tight">Pagamento referente a rastreadores</p>
+                <p className="font-semibold text-sm text-foreground leading-tight">
+                  {currentStep === 0 && 'Dados da Empresa'}
+                  {currentStep === 1 && 'Conta Asaas'}
+                  {currentStep === 2 && 'Certificado Digital'}
+                  {currentStep === 3 && 'CNH'}
+                  {currentStep === 4 && 'Procuração'}
+                  {currentStep === 5 && 'Pagamento referente a rastreadores'}
+                </p>
               </div>
               <div className="shrink-0">
-                {loadingPayment
-                  ? <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
-                  : isPago
-                    ? <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Pago</span>
-                    : <span className="text-[11px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Pendente</span>}
+                {steps[currentStep].done ? (
+                  <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    Concluído
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                    Pendente
+                  </span>
+                )}
               </div>
             </div>
 
-            {paymentDescricao && (
-              <p className="text-sm font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border">
-                {paymentDescricao}
-              </p>
-            )}
-
-            {!isPago && (
-              <div className="space-y-2">
-                {paymentUrl ? (
-                  <>
-                    <a href={paymentUrl} target="_blank" rel="noopener noreferrer">
-                      <Button className="w-full gap-2 bg-amber-500 hover:bg-amber-600 text-white h-11 font-semibold">
-                        <ExternalLink className="w-4 h-4" />
-                        Realizar Pagamento
-                      </Button>
-                    </a>
-                    <Button variant="outline" className="w-full gap-2 h-10"
-                      onClick={handleVerifyPayment} disabled={verifyingPayment}>
-                      {verifyingPayment
-                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Verificando...</>
-                        : <><RefreshCw className="w-4 h-4" /> Já paguei — verificar</>}
-                    </Button>
-                    <p className="text-xs text-muted-foreground text-center">
-                      Após o pagamento, clique em "Já paguei — verificar" para continuar.
-                    </p>
-                  </>
-                ) : loadingPayment ? (
-                  <div className="flex items-center justify-center gap-2 py-3 text-muted-foreground">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Carregando link de pagamento...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 py-2 text-muted-foreground">
-                    <Clock className="w-4 h-4" />
-                    <span className="text-sm">Link de pagamento não disponível para este pedido.</span>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Step content */}
+            {currentStep === 0 && renderStepDados()}
+            {currentStep === 1 && renderStepAsaas()}
+            {currentStep === 2 && renderStepCertificado()}
+            {currentStep === 3 && renderStepCnh()}
+            {currentStep === 4 && renderStepProcuracao()}
+            {currentStep === 5 && renderStepPagamento()}
           </div>
         </div>
 
-        {/* Submit */}
-        <div className="pt-2">
-          <Button
-            onClick={handleSubmit}
-            disabled={!docsFilled || submitting}
-            className={cn(
-              'w-full h-14 text-base gap-2 rounded-2xl font-semibold transition-all duration-300',
-              docsFilled && !submitting ? 'gradient-accent shadow-lg shadow-accent/20 hover:-translate-y-0.5' : 'opacity-50 cursor-not-allowed',
-            )}
-            size="lg"
-          >
-            {submitting ? (
-              <><Loader2 className="w-5 h-5 animate-spin" /> Finalizando envio...</>
-            ) : docsFilled ? (
-              <><Send className="w-5 h-5" /> Confirmar e Enviar Documentos</>
-            ) : (
-              <span className="text-sm">{progressPercent}% — preencha as etapas 1 a 4</span>
-            )}
-          </Button>
+        {/* Navigation */}
+        <div className="flex gap-3 pt-2">
+          {currentStep > 0 && !(currentStep === 1 && emailCriado) && (
+            <Button variant="outline" onClick={() => setCurrentStep(s => s - 1)} className="h-12 px-6 rounded-xl">
+              Voltar
+            </Button>
+          )}
+          {currentStep < 5 ? (
+            <Button
+              onClick={() => {
+                if (currentStep === 0 && !emailCriado) {
+                  setShowEmailDialog(true);
+                } else {
+                  setCurrentStep(s => s + 1);
+                }
+              }}
+              disabled={!steps[currentStep].done}
+              className={cn(
+                'flex-1 h-12 rounded-xl font-semibold transition-all duration-300',
+                steps[currentStep].done ? 'gradient-accent shadow-lg shadow-accent/20' : 'opacity-50',
+              )}
+            >
+              {currentStep === 0 ? 'Salvar e Avançar' : 'Avançar'}
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSubmit}
+              disabled={!docsFilled || submitting}
+              className={cn(
+                'flex-1 h-14 text-base gap-2 rounded-2xl font-semibold transition-all duration-300',
+                docsFilled && !submitting ? 'gradient-accent shadow-lg shadow-accent/20 hover:-translate-y-0.5' : 'opacity-50 cursor-not-allowed',
+              )}
+              size="lg"
+            >
+              {submitting ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Finalizando envio...</>
+              ) : (
+                <><Send className="w-5 h-5" /> Confirmar e Enviar</>
+              )}
+            </Button>
+          )}
         </div>
 
       </div>
+
+      {/* Dialog de confirmacao de criacao de email */}
+      <AlertDialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5 text-primary" />
+              Criacao de E-mail Corporativo
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2 text-left">
+              <span className="block">
+                Ao confirmar, sera criado um e-mail corporativo para sua empresa:
+              </span>
+              <span className="block font-mono font-semibold text-foreground bg-muted px-3 py-2 rounded-lg text-sm">
+                {cnpj.replace(/\D/g, '')}@modocorreinvest.com.br
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                Este e-mail sera utilizado para comunicacoes referentes ao seu cadastro.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={creatingEmail}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCreateEmail} disabled={creatingEmail}>
+              {creatingEmail ? (
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Criando...</>
+              ) : (
+                'Confirmar e Criar E-mail'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
