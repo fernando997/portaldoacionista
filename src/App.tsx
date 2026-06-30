@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth, INTERNAL_ROLES } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import LoginPage from "./pages/LoginPage";
 import PortalLayout from "./components/PortalLayout";
@@ -36,8 +36,13 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+function PermRoute({ permission, element }: { permission: string; element: React.ReactNode }) {
+  const { hasPermission } = useAuth();
+  return hasPermission(permission as any) ? <>{element}</> : <Navigate to="/admin" replace />;
+}
+
 function AppRoutes() {
-  const { role, loading, onboardingPending } = useAuth();
+  const { role, loading, onboardingPending, hasPermission } = useAuth();
 
   if (loading) {
     return (
@@ -59,104 +64,34 @@ function AppRoutes() {
 
   if (!role) return <LoginPage />;
 
-  if (role === 'superadmin') {
-    return (
-      <PortalLayout type="admin">
-        <Routes>
-          <Route path="/admin" element={<AdminListPage />} />
-          <Route path="/admin/equipe" element={<AdminEquipePage />} />
-          <Route path="/admin/cadastrar" element={<AdminRegisterPage />} />
-          <Route path="/admin/cadastrar-visualizador" element={<AdminRegisterViewerPage />} />
-          <Route path="/admin/cadastrar-admin" element={<AdminRegisterAdminPage />} />
-          <Route path="/admin/documentos" element={<AdminDocumentosPage />} />
-          <Route path="/admin/sac" element={<AdminSacPage />} />
-          <Route path="/admin/pedidos" element={<AdminPedidosPage />} />
-          <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
-          <Route path="/admin/financeiro" element={<AdminFinanceiroPage />} />
-          <Route path="/admin/veiculos" element={<AdminVeiculosRecebidosPage />} />
-          <Route path="/admin/acionista/:id" element={<AdminAcionistaPage />} />
-          <Route path="/admin/api" element={<AdminSwaggerPage />} />
-          <Route path="*" element={<Navigate to="/admin" replace />} />
-        </Routes>
-      </PortalLayout>
-    );
-  }
+  // Unified routing for all internal roles
+  if (role && INTERNAL_ROLES.includes(role)) {
+    // Determine the default fallback page
+    const fallbackRoutes = [
+      { perm: 'acionistas', path: '/admin' },
+      { perm: 'sac', path: '/admin/sac' },
+      { perm: 'documentos', path: '/admin/documentos' },
+      { perm: 'veiculos', path: '/admin/veiculos' },
+    ] as const;
+    const defaultPath = fallbackRoutes.find(r => hasPermission(r.perm))?.path ?? '/admin';
 
-  if (role === 'admin') {
     return (
       <PortalLayout type="admin">
         <Routes>
-          <Route path="/admin" element={<AdminListPage />} />
-          <Route path="/admin/equipe" element={<AdminEquipePage />} />
-          <Route path="/admin/cadastrar" element={<AdminRegisterPage />} />
-          <Route path="/admin/cadastrar-visualizador" element={<AdminRegisterViewerPage />} />
-          <Route path="/admin/documentos" element={<AdminDocumentosPage />} />
-          <Route path="/admin/sac" element={<AdminSacPage />} />
-          <Route path="/admin/pedidos" element={<AdminPedidosPage />} />
-          <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
-          <Route path="/admin/financeiro" element={<AdminFinanceiroPage />} />
-          <Route path="/admin/veiculos" element={<AdminVeiculosRecebidosPage />} />
-          <Route path="/admin/acionista/:id" element={<AdminAcionistaPage />} />
-          <Route path="/admin/api" element={<AdminSwaggerPage />} />
-          <Route path="*" element={<Navigate to="/admin" replace />} />
-        </Routes>
-      </PortalLayout>
-    );
-  }
-
-  if (role === 'viewer') {
-    return (
-      <PortalLayout type="admin">
-        <Routes>
-          <Route path="/admin" element={<AdminListPage />} />
-          <Route path="/admin/documentos" element={<AdminDocumentosPage />} />
-          <Route path="/admin/acionista/:id" element={<AdminAcionistaPage />} />
-          <Route path="*" element={<Navigate to="/admin" replace />} />
-        </Routes>
-      </PortalLayout>
-    );
-  }
-
-  if (role === 'vendedor') {
-    return (
-      <PortalLayout type="admin">
-        <Routes>
-          <Route path="/admin" element={<AdminListPage />} />
-          <Route path="/admin/documentos" element={<AdminDocumentosPage />} />
-          <Route path="/admin/pedidos" element={<AdminPedidosPage />} />
-          <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
-          <Route path="/admin/financeiro" element={<AdminFinanceiroPage />} />
-          <Route path="/admin/acionista/:id" element={<AdminAcionistaPage />} />
-          <Route path="*" element={<Navigate to="/admin" replace />} />
-        </Routes>
-      </PortalLayout>
-    );
-  }
-
-  if (role === 'sac') {
-    return (
-      <PortalLayout type="admin">
-        <Routes>
-          <Route path="/admin" element={<AdminListPage />} />
-          <Route path="/admin/documentos" element={<AdminDocumentosPage />} />
-          <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
-          <Route path="/admin/sac" element={<AdminSacPage />} />
-          <Route path="/admin/veiculos" element={<AdminVeiculosRecebidosPage />} />
-          <Route path="/admin/acionista/:id" element={<AdminAcionistaPage />} />
-          <Route path="*" element={<Navigate to="/admin" replace />} />
-        </Routes>
-      </PortalLayout>
-    );
-  }
-
-  if (role === 'suporte') {
-    return (
-      <PortalLayout type="admin">
-        <Routes>
-          <Route path="/admin/documentos" element={<AdminDocumentosPage />} />
-          <Route path="/admin/sac" element={<AdminSacPage />} />
-          <Route path="/admin/veiculos" element={<AdminVeiculosRecebidosPage />} />
-          <Route path="*" element={<Navigate to="/admin/sac" replace />} />
+          {hasPermission('acionistas') && <Route path="/admin" element={<AdminListPage />} />}
+          {hasPermission('equipe') && <Route path="/admin/equipe" element={<AdminEquipePage />} />}
+          {hasPermission('cadastrar') && <Route path="/admin/cadastrar" element={<AdminRegisterPage />} />}
+          {hasPermission('cadastrar_visualizador') && <Route path="/admin/cadastrar-visualizador" element={<AdminRegisterViewerPage />} />}
+          {hasPermission('cadastrar_admin') && <Route path="/admin/cadastrar-admin" element={<AdminRegisterAdminPage />} />}
+          {hasPermission('documentos') && <Route path="/admin/documentos" element={<AdminDocumentosPage />} />}
+          {hasPermission('sac') && <Route path="/admin/sac" element={<AdminSacPage />} />}
+          {hasPermission('pedidos') && <Route path="/admin/pedidos" element={<AdminPedidosPage />} />}
+          {hasPermission('onboarding') && <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />}
+          {hasPermission('financeiro') && <Route path="/admin/financeiro" element={<AdminFinanceiroPage />} />}
+          {hasPermission('veiculos') && <Route path="/admin/veiculos" element={<AdminVeiculosRecebidosPage />} />}
+          {hasPermission('acionista_detalhe') && <Route path="/admin/acionista/:id" element={<AdminAcionistaPage />} />}
+          {hasPermission('api') && <Route path="/admin/api" element={<AdminSwaggerPage />} />}
+          <Route path="*" element={<Navigate to={defaultPath} replace />} />
         </Routes>
       </PortalLayout>
     );

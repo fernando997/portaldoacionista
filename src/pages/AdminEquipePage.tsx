@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth, Shareholder } from '@/contexts/AuthContext';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Shield, Pencil, Loader2, Save, Trash2, Users2 } from 'lucide-react';
+import { Shield, Pencil, Loader2, Save, Trash2, Users2, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { PERMISSION_KEYS, PERMISSION_LABELS, FULL_ACCESS_ROLES, DEFAULT_PERMISSIONS, PermissionKey } from '@/lib/permissions';
 
 const roleLabels: Record<string, { label: string; color: string }> = {
   superadmin: { label: 'Super Admin', color: 'bg-purple-500/15 text-purple-400 border-purple-500/30' },
@@ -30,6 +33,59 @@ export default function AdminEquipePage() {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Shareholder | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Permissions dialog state
+  const [permTarget, setPermTarget] = useState<Shareholder | null>(null);
+  const [permOverrides, setPermOverrides] = useState<Set<PermissionKey>>(new Set());
+  const [permSaving, setPermSaving] = useState(false);
+  const [permLoading, setPermLoading] = useState(false);
+
+  const dbRoleForInternal = (internalRole: string): string => {
+    if (internalRole === 'moderator') return 'viewer';
+    return internalRole;
+  };
+
+  const openPermissions = async (s: Shareholder) => {
+    setPermTarget(s);
+    setPermLoading(true);
+    try {
+      const { data } = await (supabase as any)
+        .from('user_permissions')
+        .select('permission')
+        .eq('user_id', s.user_id)
+        .eq('granted', true);
+      setPermOverrides(new Set((data || []).map((p: any) => p.permission as PermissionKey)));
+    } catch {
+      setPermOverrides(new Set());
+    }
+    setPermLoading(false);
+  };
+
+  const handlePermSave = async () => {
+    if (!permTarget) return;
+    setPermSaving(true);
+
+    const mappedRole = dbRoleForInternal(permTarget.internalRole!);
+    const defaults = DEFAULT_PERMISSIONS[mappedRole] || [];
+    // Only save overrides that aren't already in default permissions
+    const extras = [...permOverrides].filter(p => !defaults.includes(p));
+
+    // Delete existing overrides, then insert new ones
+    await (supabase as any)
+      .from('user_permissions')
+      .delete()
+      .eq('user_id', permTarget.user_id);
+
+    if (extras.length > 0) {
+      await (supabase as any)
+        .from('user_permissions')
+        .insert(extras.map(p => ({ user_id: permTarget.user_id, permission: p, granted: true })));
+    }
+
+    setPermSaving(false);
+    setPermTarget(null);
+    toast.success('Permissões atualizadas!');
+  };
 
   const openEdit = (s: Shareholder) => {
     setEditing(s);
@@ -146,6 +202,9 @@ export default function AdminEquipePage() {
                       <div className="flex items-center justify-end gap-1">
                         {isSuperAdmin && (
                           <>
+                            <Button variant="ghost" size="sm" onClick={() => openPermissions(s)} className="text-muted-foreground hover:text-foreground px-2">
+                              <KeyRound className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Permissões</span>
+                            </Button>
                             <Button variant="ghost" size="sm" onClick={() => openEdit(s)} className="text-muted-foreground hover:text-foreground px-2">
                               <Pencil className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Editar</span>
                             </Button>
@@ -212,6 +271,68 @@ export default function AdminEquipePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Permissions dialog */}
+      <Dialog open={!!permTarget} onOpenChange={(open) => !open && setPermTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5" />
+              Permissões — {permTarget?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {permLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : permTarget && FULL_ACCESS_ROLES.includes(dbRoleForInternal(permTarget.internalRole!)) ? (
+            <div className="py-6 text-center text-muted-foreground">
+              <Shield className="h-10 w-10 mx-auto mb-3 text-primary/50" />
+              <p className="font-semibold text-foreground">Acesso total</p>
+              <p className="text-sm mt-1">Administradores têm acesso a todas as funcionalidades.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 py-4 max-h-[400px] overflow-y-auto">
+              {PERMISSION_KEYS.map(key => {
+                const mappedRole = dbRoleForInternal(permTarget?.internalRole || '');
+                const defaults = DEFAULT_PERMISSIONS[mappedRole] || [];
+                const isDefault = defaults.includes(key);
+                const isChecked = isDefault || permOverrides.has(key);
+                return (
+                  <label
+                    key={key}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={isChecked}
+                      disabled={isDefault}
+                      onCheckedChange={(checked) => {
+                        const next = new Set(permOverrides);
+                        if (checked) next.add(key);
+                        else next.delete(key);
+                        setPermOverrides(next);
+                      }}
+                    />
+                    <span className="flex-1 text-sm font-medium">{PERMISSION_LABELS[key]}</span>
+                    {isDefault && (
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">padrão do cargo</Badge>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPermTarget(null)} disabled={permSaving}>Cancelar</Button>
+            {permTarget && !FULL_ACCESS_ROLES.includes(dbRoleForInternal(permTarget.internalRole!)) && (
+              <Button onClick={handlePermSave} disabled={permSaving}>
+                {permSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                Salvar
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

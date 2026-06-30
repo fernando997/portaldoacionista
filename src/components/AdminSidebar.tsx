@@ -1,6 +1,7 @@
 import { Users, UserPlus, LogOut, Shield, ShieldCheck, ChevronRight, Eye, FolderOpen, Headphones, Wrench, TrendingUp, Users2, MessageCircle, ClipboardList, Code2, Package, DollarSign, Truck } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
+import { PermissionKey } from '@/lib/permissions';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -34,7 +35,7 @@ type NavItemDef = {
   url: string;
   icon: React.ComponentType<{ className?: string }>;
   end?: boolean;
-  roles: string[];
+  permission: PermissionKey;
 };
 
 type NavSection = {
@@ -46,43 +47,42 @@ const navSections: NavSection[] = [
   {
     label: 'Admin',
     items: [
-      { title: 'Equipe Interna',    url: '/admin/equipe',                  icon: Users2,      end: true, roles: ['superadmin', 'admin'] },
-      { title: 'Novo Acionista',    url: '/admin/cadastrar',               icon: UserPlus,    end: true, roles: ['superadmin', 'admin'] },
-      { title: 'Novo Visualizador', url: '/admin/cadastrar-visualizador',  icon: Eye,         end: true, roles: ['superadmin', 'admin'] },
-      { title: 'Novo Membro',       url: '/admin/cadastrar-admin',         icon: ShieldCheck, end: true, roles: ['superadmin'] },
+      { title: 'Equipe Interna',    url: '/admin/equipe',                  icon: Users2,      end: true, permission: 'equipe' },
+      { title: 'Novo Acionista',    url: '/admin/cadastrar',               icon: UserPlus,    end: true, permission: 'cadastrar' },
+      { title: 'Novo Visualizador', url: '/admin/cadastrar-visualizador',  icon: Eye,         end: true, permission: 'cadastrar_visualizador' },
+      { title: 'Novo Membro',       url: '/admin/cadastrar-admin',         icon: ShieldCheck, end: true, permission: 'cadastrar_admin' },
     ],
   },
   {
     label: 'Vendas',
     items: [
-      { title: 'Acionistas',  url: '/admin',             icon: Users,         end: true, roles: ['superadmin', 'admin', 'vendedor', 'viewer', 'sac'] },
-      // { title: 'Documentos',  url: '/admin/documentos',  icon: FolderOpen,    end: true, roles: ['superadmin', 'admin', 'vendedor', 'viewer', 'sac', 'suporte'] },
-      { title: 'Pedidos',     url: '/admin/pedidos',     icon: ClipboardList, end: true, roles: ['superadmin', 'admin', 'vendedor'] },
+      { title: 'Acionistas',  url: '/admin',             icon: Users,         end: true, permission: 'acionistas' },
+      { title: 'Pedidos',     url: '/admin/pedidos',     icon: ClipboardList, end: true, permission: 'pedidos' },
     ],
   },
   {
     label: 'Onboarding',
     items: [
-      { title: 'Onboarding', url: '/admin/onboarding', icon: Package, end: true, roles: ['superadmin', 'admin', 'vendedor', 'sac'] },
+      { title: 'Onboarding', url: '/admin/onboarding', icon: Package, end: true, permission: 'onboarding' },
     ],
   },
   {
     label: 'Financeiro',
     items: [
-      { title: 'Cobranças', url: '/admin/financeiro', icon: DollarSign, end: true, roles: ['superadmin', 'admin', 'vendedor'] },
-      { title: 'Veículos Recebidos', url: '/admin/veiculos', icon: Truck, end: true, roles: ['superadmin', 'admin', 'sac', 'suporte'] },
+      { title: 'Cobranças', url: '/admin/financeiro', icon: DollarSign, end: true, permission: 'financeiro' },
+      { title: 'Veículos Recebidos', url: '/admin/veiculos', icon: Truck, end: true, permission: 'veiculos' },
     ],
   },
   {
     label: 'Atendimento',
     items: [
-      { title: 'SAC', url: '/admin/sac', icon: MessageCircle, end: true, roles: ['superadmin', 'admin', 'sac', 'suporte'] },
+      { title: 'SAC', url: '/admin/sac', icon: MessageCircle, end: true, permission: 'sac' },
     ],
   },
   {
     label: 'Desenvolvedor',
     items: [
-      { title: 'API Explorer', url: '/admin/api', icon: Code2, end: true, roles: ['superadmin', 'admin'] },
+      { title: 'API Explorer', url: '/admin/api', icon: Code2, end: true, permission: 'api' },
     ],
   },
 ];
@@ -151,7 +151,7 @@ function SectionLabel({ label, collapsed }: { label: string; collapsed: boolean 
 export function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const { logout, role } = useAuth();
+  const { logout, role, hasPermission } = useAuth();
   const cfg = role ? roleConfig[role] : roleConfig['admin'];
   const RoleIcon = cfg.icon;
   const [openTickets, setOpenTickets] = useState(0);
@@ -161,7 +161,7 @@ export function AdminSidebar() {
   const visibleSections = navSections
     .map(section => ({
       ...section,
-      items: section.items.filter(item => role && item.roles.includes(role)),
+      items: section.items.filter(item => hasPermission(item.permission)),
     }))
     .filter(section => section.items.length > 0);
 
@@ -244,7 +244,7 @@ export function AdminSidebar() {
               <div key={section.label}>
                 <SectionLabel label={section.label} collapsed={collapsed} />
                 <SidebarMenu className="space-y-0.5">
-                  {section.items.map(({ roles: _, ...item }) => (
+                  {section.items.map(({ permission: _, ...item }) => (
                     <NavItem
                       key={item.url}
                       {...item}

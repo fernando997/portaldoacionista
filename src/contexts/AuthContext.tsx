@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
+import { PermissionKey, resolvePermissions } from '@/lib/permissions';
 
 export type UserRole = 'shareholder' | 'admin' | 'viewer' | 'superadmin' | 'vendedor' | 'sac' | 'suporte' | null;
 
@@ -61,6 +62,8 @@ interface AuthContextType {
   returnToAdmin: () => void;
   onboardingPending: boolean;
   onboardingData: OnboardingStatus | null;
+  permissions: Set<PermissionKey>;
+  hasPermission: (key: PermissionKey) => boolean;
 }
 
 const defaultShareholder: Shareholder = {
@@ -93,6 +96,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [adminSnapshot, setAdminSnapshot] = useState<Shareholder | null>(null);
   const [onboardingPending, setOnboardingPending] = useState(false);
   const [onboardingData, setOnboardingData] = useState<OnboardingStatus | null>(null);
+  const [permissions, setPermissions] = useState<Set<PermissionKey>>(new Set());
+
+  const hasPermission = (key: PermissionKey): boolean => permissions.has(key);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -158,20 +164,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select('role')
       .eq('user_id', userId);
 
+    let determinedRole: UserRole = 'shareholder';
     if (roles && roles.some(r => r.role === 'superadmin')) {
-      setRole('superadmin');
+      determinedRole = 'superadmin';
     } else if (roles && roles.some(r => r.role === 'admin')) {
-      setRole('admin');
+      determinedRole = 'admin';
     } else if (roles && roles.some(r => r.role === 'moderator')) {
-      setRole('viewer');
+      determinedRole = 'viewer';
     } else if (roles && roles.some(r => r.role === 'vendedor')) {
-      setRole('vendedor');
+      determinedRole = 'vendedor';
     } else if (roles && roles.some(r => r.role === 'sac')) {
-      setRole('sac');
+      determinedRole = 'sac';
     } else if (roles && roles.some(r => r.role === 'suporte')) {
-      setRole('suporte');
-    } else {
-      setRole('shareholder');
+      determinedRole = 'suporte';
+    }
+    setRole(determinedRole);
+
+    // Load user permission overrides and resolve final permissions
+    if (determinedRole && determinedRole !== 'shareholder') {
+      let overrides: PermissionKey[] = [];
+      try {
+        const { data: perms } = await (supabase as any)
+          .from('user_permissions')
+          .select('permission')
+          .eq('user_id', userId)
+          .eq('granted', true);
+        overrides = (perms || []).map((p: any) => p.permission as PermissionKey);
+      } catch {
+        // table may not exist yet
+      }
+      setPermissions(resolvePermissions(determinedRole, overrides));
     }
 
     const internalDbRoles = ['admin', 'superadmin', 'moderator', 'vendedor', 'sac', 'suporte'];
@@ -274,14 +296,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (found) {
       setAdminSnapshot(currentShareholder);
       setPreImpersonationRole(role);
+      setPreImpersonationPermissions(permissions);
       isImpersonatingRef.current = true;
       setIsImpersonating(true);
       setCurrentShareholder(found);
       setRole('shareholder');
+      setPermissions(new Set());
     }
   };
 
   const [preImpersonationRole, setPreImpersonationRole] = useState<UserRole>(null);
+  const [preImpersonationPermissions, setPreImpersonationPermissions] = useState<Set<PermissionKey>>(new Set());
 
   const returnToAdmin = () => {
     if (adminSnapshot) setCurrentShareholder(adminSnapshot);
@@ -289,11 +314,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsImpersonating(false);
     setAdminSnapshot(null);
     setRole(preImpersonationRole ?? 'admin');
+    setPermissions(preImpersonationPermissions);
     setPreImpersonationRole(null);
+    setPreImpersonationPermissions(new Set());
   };
 
   return (
-    <AuthContext.Provider value={{ role, currentShareholder, user, session, loading, login, logout, shareholders, pendingShareholders, addShareholder, viewAs, isImpersonating, returnToAdmin, onboardingPending, onboardingData }}>
+    <AuthContext.Provider value={{ role, currentShareholder, user, session, loading, login, logout, shareholders, pendingShareholders, addShareholder, viewAs, isImpersonating, returnToAdmin, onboardingPending, onboardingData, permissions, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );
