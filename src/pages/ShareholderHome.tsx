@@ -262,6 +262,8 @@ export default function ShareholderHome() {
   const contratos       = poolData?.contratos         != null ? Number(poolData.contratos)         : null;
   const fechamentContratos = poolData?.fechament_contratos != null ? Number(poolData.fechament_contratos) : null;
   const novosVeiculos   = poolData?.novos_veiculos    != null ? Number(poolData.novos_veiculos)    : null;
+  const frotaParcial    = poolData?.frota_parcial     != null ? Number(poolData.frota_parcial)     : null;
+  const frotaTotalGeral = frotaTotal != null && frotaParcial != null ? frotaTotal + frotaParcial : null;
   const receitaTotal   = receitaBruta != null && receitaFaturada != null ? receitaBruta + receitaFaturada : null;
   const participacao   =
     clientMotos != null && frotaTotal != null && frotaTotal > 0
@@ -462,11 +464,25 @@ export default function ShareholderHome() {
       {/* ── Operação da Frota ────────────────────────────────── */}
       <section className="animate-fade-in" style={{ animationDelay: '0.15s' }}>
         <SectionHeader label="Operação da Frota" icon={Bike} />
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
           <KpiCard
-            label="Frota Total"
+            label="Frota Consolidada"
             value={loadingPool ? null : (frotaTotal != null ? `${frotaTotal} motos` : 'Indisponível')}
             icon={Bike}
+            sub="Veículos que já fazem parte do grupo e já foram locados ao menos uma vez"
+          />
+          <KpiCard
+            label="Frota Não Consolidada"
+            value={loadingPool ? null : (frotaParcial != null ? `${frotaParcial} motos` : 'Indisponível')}
+            icon={Bike}
+            sub="Veículos que ainda não fazem parte de nenhum grupo e não possuem locações consolidadas"
+          />
+          <KpiCard
+            label="Total da Frota"
+            value={loadingPool ? null : (frotaTotalGeral != null ? `${frotaTotalGeral} motos` : 'Indisponível')}
+            icon={Bike}
+            highlight="accent"
+            sub="Frota Consolidada + Frota Não Consolidada"
           />
           <KpiCard
             label="Motos Locadas"
@@ -479,6 +495,7 @@ export default function ShareholderHome() {
             value={loadingPool ? null : (taxaLocacao ?? 'Indisponível')}
             icon={TrendingUp}
             highlight="accent"
+            sub="% sobre a Frota Consolidada"
           />
         </div>
       </section>
