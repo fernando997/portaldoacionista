@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Send, Loader2, MessageCircle, Headphones, Clock, AlertTriangle, XCircle } from 'lucide-react';
+import { Send, Loader2, MessageCircle, Headphones, Clock, AlertTriangle, XCircle, ImagePlus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const DEADLINE_HOURS = 24;
@@ -126,6 +126,7 @@ type Message = {
   content: string;
   is_staff: boolean;
   created_at: string;
+  image_urls?: string[] | null;
 };
 
 function fmtDate(iso: string) {
@@ -204,8 +205,10 @@ export default function AdminSacPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [reply, setReply] = useState('');
+  const [replyImages, setReplyImages] = useState<File[]>([]);
   const [sendingReply, setSendingReply] = useState(false);
   const [closingTicket, setClosingTicket] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -250,6 +253,7 @@ export default function AdminSacPage() {
   const openTicket = async (ticket: Ticket) => {
     setSelectedTicketId(ticket.id);
     setReply('');
+    setReplyImages([]);
     setLoadingMessages(true);
 
     const { data } = await supabase
@@ -264,20 +268,34 @@ export default function AdminSacPage() {
 
   const handleReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reply.trim() || !selectedTicket) return;
+    if ((!reply.trim() && replyImages.length === 0) || !selectedTicket) return;
     setSendingReply(true);
+
+    // Upload images
+    const uploadedUrls: string[] = [];
+    for (const file of replyImages) {
+      const ext = file.name.split('.').pop() ?? 'bin';
+      const path = `${selectedTicket.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('sac-images').upload(path, file);
+      if (!upErr) {
+        const { data: { publicUrl } } = supabase.storage.from('sac-images').getPublicUrl(path);
+        uploadedUrls.push(publicUrl);
+      }
+    }
 
     const { error } = await supabase.from('sac_messages').insert({
       ticket_id: selectedTicket.id,
       author_id: user!.id,
-      content: reply.trim(),
+      content: reply.trim() || (uploadedUrls.length > 0 ? '📎 Imagem enviada' : ''),
       is_staff: true,
-    });
+      image_urls: uploadedUrls.length > 0 ? uploadedUrls : null,
+    } as any);
 
     if (error) {
       toast({ title: 'Erro ao enviar mensagem', variant: 'destructive' });
     } else {
       setReply('');
+      setReplyImages([]);
       const { data } = await supabase
         .from('sac_messages')
         .select('*')
@@ -534,6 +552,15 @@ export default function AdminSacPage() {
                                   </p>
                                 )}
                                 <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                                {msg.image_urls && msg.image_urls.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    {msg.image_urls.map((url, i) => (
+                                      <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                                        <img src={url} alt={`Imagem ${i + 1}`} className="max-w-[200px] max-h-[200px] rounded-lg object-cover border border-border/50 hover:opacity-80 transition-opacity cursor-pointer" />
+                                      </a>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                               <p className="text-[10px] text-muted-foreground mt-1 px-1">{fmtTime(msg.created_at)}</p>
                             </div>
@@ -556,6 +583,22 @@ export default function AdminSacPage() {
               {/* Reply area */}
               {selectedTicket.status === 'aberto' && (
                 <div className="border-t px-4 py-3.5 shrink-0 bg-background space-y-2">
+                  {replyImages.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {replyImages.map((file, i) => (
+                        <div key={i} className="relative group">
+                          <img src={URL.createObjectURL(file)} alt="" className="w-16 h-16 rounded-lg object-cover border border-border" />
+                          <button
+                            type="button"
+                            onClick={() => setReplyImages(imgs => imgs.filter((_, idx) => idx !== i))}
+                            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <form onSubmit={handleReply} className="flex gap-2 items-end">
                     <textarea
                       value={reply}
@@ -566,11 +609,27 @@ export default function AdminSacPage() {
                       onKeyDown={e => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
-                          if (reply.trim()) handleReply(e as any);
+                          if (reply.trim() || replyImages.length > 0) handleReply(e as any);
                         }
                       }}
                     />
-                    <Button type="submit" size="icon" disabled={sendingReply || !reply.trim()} className="self-end shrink-0">
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={e => {
+                        if (e.target.files) {
+                          setReplyImages(prev => [...prev, ...Array.from(e.target.files!)]);
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                    <Button type="button" size="icon" variant="ghost" className="self-end shrink-0 text-muted-foreground hover:text-foreground" onClick={() => imageInputRef.current?.click()}>
+                      <ImagePlus className="w-4 h-4" />
+                    </Button>
+                    <Button type="submit" size="icon" disabled={sendingReply || (!reply.trim() && replyImages.length === 0)} className="self-end shrink-0">
                       {sendingReply ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     </Button>
                   </form>
