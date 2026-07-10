@@ -27,32 +27,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Autenticar via JWT do usuario logado
-    const authHeader = req.headers.get("authorization") ?? "";
-    const token = authHeader.replace("Bearer ", "");
-    const {
-      data: { user },
-    } = await supabase.auth.getUser(token);
-    if (!user) return json({ error: "Nao autorizado" }, 401);
-
-    // Verificar se e usuario interno (admin/superadmin/vendedor etc)
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id);
-    const internalRoles = [
-      "admin",
-      "superadmin",
-      "vendedor",
-      "viewer",
-      "sac",
-      "suporte",
-    ];
-    const isInternal = (roles ?? []).some((r: any) =>
-      internalRoles.includes(r.role)
-    );
-    if (!isInternal) return json({ error: "Acesso restrito" }, 403);
-
     const body = await req.json();
     const { numero } = body;
 
