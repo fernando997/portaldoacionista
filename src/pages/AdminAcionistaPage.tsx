@@ -53,6 +53,7 @@ interface Arquivo {
   file_url: string;
   created_at: string;
   locadora_bubble_id?: string | null;
+  senha_certificado?: string | null;
 }
 
 interface OnboardingDoc {
@@ -118,6 +119,23 @@ function SenhaCertificadoField({ value }: { value: string | null }) {
   );
 }
 
+function SenhaCertificadoInline({ value }: { value: string }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="flex items-center gap-1.5 mt-0.5">
+      <span className="text-xs text-muted-foreground">Senha:</span>
+      <span className="text-xs font-mono font-medium text-foreground">{visible ? value : '••••••••'}</span>
+      <button
+        type="button"
+        className="text-muted-foreground hover:text-foreground transition-colors"
+        onClick={() => setVisible(v => !v)}
+      >
+        {visible ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+      </button>
+    </div>
+  );
+}
+
 const tipoLabels: Record<string, string> = {
   rg_cnh: 'RG / CNH',
   comprovante_residencia: 'Comprovante de Residencia',
@@ -153,6 +171,7 @@ export default function AdminAcionistaPage() {
   const [loadingArquivos, setLoadingArquivos] = useState(false);
   const [uploadTipo, setUploadTipo] = useState('rg_cnh');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadSenha, setUploadSenha] = useState('');
   const [uploadando, setUploadando] = useState(false);
   const [onboardingDocs, setOnboardingDocs] = useState<OnboardingDoc[]>([]);
 
@@ -430,6 +449,10 @@ export default function AdminAcionistaPage() {
 
   async function handleUpload() {
     if (!uploadFile || !investidor) return;
+    if (uploadTipo === 'certificado_digital' && !uploadSenha.trim()) {
+      toast.error('A senha do certificado digital é obrigatória.');
+      return;
+    }
     setUploadando(true);
     const ext  = uploadFile.name.split('.').pop() ?? 'bin';
     const path = `${investidor.id}/${uploadTipo}/${Date.now()}.${ext}`;
@@ -449,6 +472,7 @@ export default function AdminAcionistaPage() {
       file_url:      publicUrl,
       created_by:    session?.user?.id,
       locadora_bubble_id: investidor.locadora_bubble_id ?? null,
+      senha_certificado: uploadTipo === 'certificado_digital' ? uploadSenha.trim() : null,
     });
     setUploadando(false);
     if (error) {
@@ -456,6 +480,7 @@ export default function AdminAcionistaPage() {
     } else {
       toast.success('Arquivo enviado!');
       setUploadFile(null);
+      setUploadSenha('');
       loadArquivos(investidor.id);
     }
   }
@@ -748,7 +773,7 @@ export default function AdminAcionistaPage() {
                 <FieldLabel>Tipo</FieldLabel>
                 <select
                   value={uploadTipo}
-                  onChange={e => setUploadTipo(e.target.value)}
+                  onChange={e => { setUploadTipo(e.target.value); setUploadSenha(''); }}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring h-10"
                 >
                   <option value="rg_cnh">RG / CNH</option>
@@ -771,10 +796,21 @@ export default function AdminAcionistaPage() {
                 </label>
               </div>
             </div>
+            {uploadTipo === 'certificado_digital' && (
+              <div>
+                <FieldLabel required>Senha do certificado</FieldLabel>
+                <Input
+                  type="text"
+                  value={uploadSenha}
+                  onChange={e => setUploadSenha(e.target.value)}
+                  placeholder="Digite a senha do certificado digital"
+                />
+              </div>
+            )}
             <Button
               size="sm"
               className="gap-2"
-              disabled={!uploadFile || uploadando}
+              disabled={!uploadFile || uploadando || (uploadTipo === 'certificado_digital' && !uploadSenha.trim())}
               onClick={handleUpload}
             >
               {uploadando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
@@ -802,6 +838,9 @@ export default function AdminAcionistaPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{arq.nome ?? 'Documento'}</p>
                       <p className="text-xs text-muted-foreground">{tipoLabels[arq.tipo] ?? arq.tipo}</p>
+                      {arq.senha_certificado && (
+                        <SenhaCertificadoInline value={arq.senha_certificado} />
+                      )}
                     </div>
                     <a href={arq.file_url} target="_blank" rel="noopener noreferrer">
                       <Button variant="ghost" size="sm" className="h-8 px-2 text-muted-foreground">
