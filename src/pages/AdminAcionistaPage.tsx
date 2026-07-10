@@ -767,7 +767,7 @@ export default function AdminAcionistaPage() {
                 <label className="flex items-center gap-2 cursor-pointer rounded-md border border-input bg-background px-3 h-10 text-sm hover:bg-muted/20 transition-colors">
                   <Upload className="w-4 h-4 text-muted-foreground shrink-0" />
                   <span className="truncate text-muted-foreground">{uploadFile ? uploadFile.name : 'Selecionar...'}</span>
-                  <input type="file" className="hidden" onChange={e => setUploadFile(e.target.files?.[0] ?? null)} accept="image/*,.pdf" />
+                  <input type="file" className="hidden" onChange={e => setUploadFile(e.target.files?.[0] ?? null)} accept="image/*,.pdf,.pfx,.p12" />
                 </label>
               </div>
             </div>
