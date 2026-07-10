@@ -78,7 +78,7 @@ export default function LoginPage() {
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.08] border border-white/[0.12] backdrop-blur-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-[hsl(135,60%,52%)] animate-pulse" />
                 <Shield className="w-3.5 h-3.5 text-[hsl(135,55%,52%)]" />
-                <span className="text-xs font-medium text-white/65 tracking-wide">Portal Seguro do Acionista</span>
+                <span className="text-xs font-medium text-white/65 tracking-wide">Portal do Licenciado</span>
               </div>
 
               {/* Headline */}
@@ -160,7 +160,7 @@ export default function LoginPage() {
               <img src={logo} alt="Modo Corre" className="h-24 w-auto object-contain shrink-0 brightness-0 invert opacity-90" />
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.08] border border-white/[0.1]">
                 <Shield className="w-3 h-3 text-[hsl(135,55%,52%)]" />
-                <span className="text-xs font-medium text-white/60">Portal do Acionista</span>
+                <span className="text-xs font-medium text-white/60">Portal do Licenciado</span>
               </div>
             </div>
           </div>
