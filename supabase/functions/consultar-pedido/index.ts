@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-api-key",
 };
 
 Deno.serve(async (req) => {
@@ -26,6 +26,21 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Autenticar via API key OU JWT
+    const apiKey = req.headers.get("x-api-key");
+    const expectedKey = Deno.env.get("RASTREADOR_API_KEY");
+
+    if (apiKey) {
+      if (!expectedKey || apiKey !== expectedKey) {
+        return json({ error: "API key invalida" }, 401);
+      }
+    } else {
+      const authHeader = req.headers.get("authorization") ?? "";
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user } } = await supabase.auth.getUser(token);
+      if (!user) return json({ error: "Nao autorizado" }, 401);
+    }
 
     const body = await req.json();
     const { numero } = body;

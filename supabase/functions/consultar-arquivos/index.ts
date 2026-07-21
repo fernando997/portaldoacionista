@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-api-key",
 };
 
 Deno.serve(async (req) => {
@@ -27,31 +27,40 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Autenticar via JWT
-    const authHeader = req.headers.get("authorization") ?? "";
-    const token = authHeader.replace("Bearer ", "");
-    const {
-      data: { user },
-    } = await supabase.auth.getUser(token);
-    if (!user) return json({ error: "Nao autorizado" }, 401);
+    // Autenticar via API key OU JWT
+    const apiKey = req.headers.get("x-api-key");
+    const expectedKey = Deno.env.get("RASTREADOR_API_KEY");
 
-    // Verificar se e usuario interno
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id);
-    const internalRoles = [
-      "admin",
-      "superadmin",
-      "vendedor",
-      "viewer",
-      "sac",
-      "suporte",
-    ];
-    const isInternal = (roles ?? []).some((r: any) =>
-      internalRoles.includes(r.role)
-    );
-    if (!isInternal) return json({ error: "Acesso restrito" }, 403);
+    if (apiKey) {
+      if (!expectedKey || apiKey !== expectedKey) {
+        return json({ error: "API key invalida" }, 401);
+      }
+    } else {
+      const authHeader = req.headers.get("authorization") ?? "";
+      const token = authHeader.replace("Bearer ", "");
+      const {
+        data: { user },
+      } = await supabase.auth.getUser(token);
+      if (!user) return json({ error: "Nao autorizado" }, 401);
+
+      // Verificar se e usuario interno
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      const internalRoles = [
+        "admin",
+        "superadmin",
+        "vendedor",
+        "viewer",
+        "sac",
+        "suporte",
+      ];
+      const isInternal = (roles ?? []).some((r: any) =>
+        internalRoles.includes(r.role)
+      );
+      if (!isInternal) return json({ error: "Acesso restrito" }, 403);
+    }
 
     const body = await req.json();
     const { locadora_bubble_id } = body;

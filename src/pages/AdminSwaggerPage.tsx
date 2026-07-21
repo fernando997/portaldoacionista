@@ -22,6 +22,7 @@ const endpoints: Endpoint[] = [
     path: '/functions/v1/consultar-pedido',
     summary: 'Consultar Pedido',
     description: 'Retorna todos os detalhes de um pedido: investidor, veiculo, pagamento, rastreadores, onboarding e criador.',
+    authType: 'apikey',
     bodyFields: [
       { name: 'numero', type: 'string | number', required: true, example: '90', description: 'Numero do pedido (ex: 90 ou PED-2026-0090)' },
     ],
@@ -31,6 +32,7 @@ const endpoints: Endpoint[] = [
     path: '/functions/v1/consultar-arquivos',
     summary: 'Consultar Arquivos por Locadora',
     description: 'Retorna todos os documentos de investidor_arquivos vinculados a uma locadora_bubble_id.',
+    authType: 'apikey',
     bodyFields: [
       { name: 'locadora_bubble_id', type: 'string', required: true, example: '', description: 'ID da locadora no Bubble' },
     ],
