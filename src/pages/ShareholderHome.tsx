@@ -230,7 +230,7 @@ export default function ShareholderHome() {
   const [clientMotos, setClientMotos] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!currentShareholder.idGrupo) return;
+    if (!currentShareholder.idGrupo && !currentShareholder.idLocadora) return;
     fetch('https://modocorreapp.com.br/api/1.1/wf/pool_financeiro', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -240,7 +240,7 @@ export default function ShareholderHome() {
       .then(d => setPoolData(d.response ?? d))
       .catch(err => console.error('Erro pool financeiro:', err))
       .finally(() => setLoadingPool(false));
-  }, [currentShareholder.idGrupo]);
+  }, [currentShareholder.idGrupo, currentShareholder.idLocadora]);
 
   useEffect(() => {
     if (!currentShareholder.idLocadora) return;

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Bike, CheckCircle, PackageOpen, Percent, Wrench,
-  AlertTriangle, Archive, Search, X,
+  AlertTriangle, Archive, Search, X, Users, Clock,
 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -37,25 +37,25 @@ function FleetStatCard({ label, value, icon: Icon, gradient, suffix, sub }: {
 }) {
   return (
     <div
-      className="group relative bg-card rounded-2xl border border-border/70 p-5 flex flex-col gap-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+      className="group relative bg-card rounded-2xl border border-border/70 p-3 sm:p-5 flex items-center gap-3 sm:flex-col sm:items-start sm:gap-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
       style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
     >
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105"
+      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105"
         style={{ background: gradient ?? 'hsl(var(--muted))', color: gradient ? '#fff' : 'hsl(var(--muted-foreground))' }}
       >
-        <Icon className="h-[18px] w-[18px]" />
+        <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
       </div>
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-1"
+      <div className="min-w-0">
+        <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.08em] sm:tracking-[0.1em] text-muted-foreground mb-0.5 sm:mb-1 truncate"
           style={{ fontFamily: 'var(--font-body)' }}
         >
           {label}
         </p>
-        <p className="text-2xl font-bold text-foreground tabular-nums" style={{ fontFamily: 'var(--font-body)' }}>
+        <p className="text-lg sm:text-2xl font-bold text-foreground tabular-nums" style={{ fontFamily: 'var(--font-body)' }}>
           {value}{suffix}
         </p>
         {sub && (
-          <p className="text-xs text-muted-foreground mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate" style={{ fontFamily: 'var(--font-body)' }}>
             {sub}
           </p>
         )}
@@ -71,8 +71,8 @@ function SkeletonRow() {
       <TableCell><Skeleton className="h-4 w-20 rounded" /></TableCell>
       <TableCell><Skeleton className="h-4 w-28 rounded" /></TableCell>
       <TableCell className="hidden sm:table-cell"><Skeleton className="h-4 w-12 rounded" /></TableCell>
-      <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
       <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24 rounded" /></TableCell>
+      <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
     </TableRow>
   );
 }
@@ -109,10 +109,17 @@ export default function FleetPage() {
   const disponiveis = fleetData?.disponiveis ?? 0;
   const taxaLocacao = total > 0 ? Math.round((locadas / total) * 100) : 0;
   const veiculos    = fleetData?.veiculos ?? [];
+  const [poolFilter, setPoolFilter] = useState<'todos' | 'ativo' | 'aguardando'>('todos');
+
+  const ativosNoPool    = veiculos.filter(v => v.primeira_locacao).length;
+  const aguardandoPool  = veiculos.filter(v => !v.primeira_locacao).length;
 
   const filtered = veiculos.filter(m => {
     const q = search.toLowerCase();
-    return !q || m.placa?.toLowerCase().includes(q) || m.modelo?.toLowerCase().includes(q) || m.status?.toLowerCase().includes(q);
+    const poolLabel = m.primeira_locacao ? 'ativo no pool' : 'aguardando alocação';
+    const matchSearch = !q || m.placa?.toLowerCase().includes(q) || m.modelo?.toLowerCase().includes(q) || m.status?.toLowerCase().includes(q) || poolLabel.includes(q);
+    const matchPool = poolFilter === 'todos' || (poolFilter === 'ativo' ? !!m.primeira_locacao : !m.primeira_locacao);
+    return matchSearch && matchPool;
   });
 
   return (
@@ -131,14 +138,14 @@ export default function FleetPage() {
       </div>
 
       {/* ── KPI cards ───────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 animate-fade-in" style={{ animationDelay: '0.06s' }}>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 animate-fade-in" style={{ animationDelay: '0.06s' }}>
         {loading ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-card rounded-2xl border border-border/70 p-5 space-y-4">
-              <Skeleton className="w-10 h-10 rounded-xl" />
+          Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-card rounded-2xl border border-border/70 p-3 sm:p-5 flex items-center gap-3 sm:flex-col sm:items-start sm:gap-4">
+              <Skeleton className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl shrink-0" />
               <div className="space-y-1.5">
                 <Skeleton className="h-3 w-16 rounded" />
-                <Skeleton className="h-7 w-12 rounded" />
+                <Skeleton className="h-5 sm:h-7 w-12 rounded" />
               </div>
             </div>
           ))
@@ -170,6 +177,19 @@ export default function FleetPage() {
               gradient="linear-gradient(135deg, hsl(210,80%,55%), hsl(210,80%,45%))"
               suffix="%"
             />
+            <FleetStatCard
+              label="Ativos no Pool"
+              value={ativosNoPool}
+              icon={Users}
+              gradient="linear-gradient(135deg, hsl(160,50%,40%), hsl(160,55%,30%))"
+              sub={total > 0 ? `${Math.round((ativosNoPool / total) * 100)}% da frota` : undefined}
+            />
+            <FleetStatCard
+              label="Aguardando Alocação"
+              value={aguardandoPool}
+              icon={Clock}
+              gradient="linear-gradient(135deg, hsl(0,0%,45%), hsl(0,0%,35%))"
+            />
           </>
         )}
       </div>
@@ -193,7 +213,26 @@ export default function FleetPage() {
             )}
           </div>
 
-          {/* Search */}
+          {/* Pool filter + Search */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {(['todos', 'ativo', 'aguardando'] as const).map(f => {
+              const labels = { todos: 'Todos', ativo: 'Ativos no Pool', aguardando: 'Aguardando' };
+              return (
+                <button
+                  key={f}
+                  onClick={() => setPoolFilter(f)}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
+                    poolFilter === f
+                      ? 'bg-foreground text-background border-foreground'
+                      : 'bg-muted/40 text-muted-foreground border-input hover:bg-muted'
+                  }`}
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  {labels[f]}
+                </button>
+              );
+            })}
+          </div>
           <div className="relative w-full sm:w-56">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             <Input
@@ -212,7 +251,7 @@ export default function FleetPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <Table className="min-w-[520px]">
+          <Table className="min-w-[360px]">
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-muted/40">
                 <TableHead className="font-bold text-[11px] uppercase tracking-[0.08em] text-muted-foreground whitespace-nowrap"
@@ -227,13 +266,13 @@ export default function FleetPage() {
                   style={{ fontFamily: 'var(--font-body)' }}>
                   Ano
                 </TableHead>
-                <TableHead className="font-bold text-[11px] uppercase tracking-[0.08em] text-muted-foreground whitespace-nowrap"
-                  style={{ fontFamily: 'var(--font-body)' }}>
-                  Status
-                </TableHead>
                 <TableHead className="font-bold text-[11px] uppercase tracking-[0.08em] text-muted-foreground hidden md:table-cell"
                   style={{ fontFamily: 'var(--font-body)' }}>
                   Situação
+                </TableHead>
+                <TableHead className="font-bold text-[11px] uppercase tracking-[0.08em] text-muted-foreground whitespace-nowrap"
+                  style={{ fontFamily: 'var(--font-body)' }}>
+                  Pool
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -268,8 +307,8 @@ export default function FleetPage() {
                   </TableRow>
                 )
                 : filtered.map((moto) => {
-                  const cfg = statusConfig[moto.status] ?? statusConfig['Ativa'];
-                  const StatusIcon = cfg.icon;
+                  const situacao = (moto.status_veiculo_desc || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                  const hideModelo = ['compra em transito', 'compra recebida'].includes(situacao);
                   return (
                     <TableRow key={moto.placa} className="hover:bg-muted/25 transition-colors">
                       <TableCell className="whitespace-nowrap">
@@ -279,29 +318,47 @@ export default function FleetPage() {
                       </TableCell>
                       <TableCell>
                         <p className="text-sm font-medium text-foreground" style={{ fontFamily: 'var(--font-body)' }}>
-                          {moto.modelo}
+                          {hideModelo ? '—' : moto.modelo}
                         </p>
                         <p className="text-xs text-muted-foreground sm:hidden" style={{ fontFamily: 'var(--font-body)' }}>
                           {moto['ano-modelo'] ?? moto.ano}
                         </p>
+                        {moto.status_veiculo_desc && (
+                          <p className="text-[11px] text-muted-foreground md:hidden mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
+                            {moto.status_veiculo_desc}
+                          </p>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground hidden sm:table-cell whitespace-nowrap"
                         style={{ fontFamily: 'var(--font-body)' }}>
                         {moto['ano-modelo'] ?? moto.ano}
                       </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${cfg.badge}`}
-                          style={{ fontFamily: 'var(--font-body)' }}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} shrink-0`} />
-                          {moto.status}
-                        </Badge>
-                      </TableCell>
                       <TableCell className="hidden md:table-cell text-sm text-muted-foreground"
                         style={{ fontFamily: 'var(--font-body)' }}>
                         {moto.status_veiculo_desc || '—'}
+                      </TableCell>
+                      <TableCell>
+                        {moto.primeira_locacao ? (
+                          <Badge
+                            variant="outline"
+                            className="inline-flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 whitespace-nowrap"
+                            style={{ fontFamily: 'var(--font-body)' }}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                            <span className="hidden sm:inline">Ativo no Pool</span>
+                            <span className="sm:hidden">No Pool</span>
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="inline-flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border bg-zinc-50 text-zinc-500 border-zinc-200 whitespace-nowrap"
+                            style={{ fontFamily: 'var(--font-body)' }}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 shrink-0" />
+                            <span className="hidden sm:inline">Aguardando Alocação</span>
+                            <span className="sm:hidden">Aguardando</span>
+                          </Badge>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
