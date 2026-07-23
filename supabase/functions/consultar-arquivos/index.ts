@@ -72,25 +72,36 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Buscar arquivos pela locadora_bubble_id
+    // Buscar investidor pela locadora_bubble_id
+    const { data: investidor, error: invErr } = await supabase
+      .from("investidores")
+      .select("id, nome")
+      .eq("locadora_bubble_id", locadora_bubble_id)
+      .maybeSingle();
+
+    if (invErr) throw invErr;
+
+    if (!investidor) {
+      return json({
+        success: true,
+        locadora_bubble_id,
+        investidor_nome: null,
+        total: 0,
+        arquivos: [],
+        message: "Nenhum investidor encontrado com essa locadora_bubble_id",
+      });
+    }
+
+    const investidor_nome: string | null = (investidor as any).nome ?? null;
+
+    // Buscar arquivos pelo investidor_id
     const { data: arquivos, error: arqErr } = await supabase
       .from("investidor_arquivos")
       .select("id, investidor_id, tipo, nome, file_url, locadora_bubble_id, created_at")
-      .eq("locadora_bubble_id", locadora_bubble_id)
+      .eq("investidor_id", (investidor as any).id)
       .order("created_at", { ascending: false });
 
     if (arqErr) throw arqErr;
-
-    // Buscar nome do investidor (do primeiro arquivo, se houver)
-    let investidor_nome: string | null = null;
-    if (arquivos && arquivos.length > 0) {
-      const { data: inv } = await supabase
-        .from("investidores")
-        .select("nome")
-        .eq("id", (arquivos[0] as any).investidor_id)
-        .maybeSingle();
-      investidor_nome = (inv as any)?.nome ?? null;
-    }
 
     const tipoLabels: Record<string, string> = {
       rg_cnh: "RG / CNH",

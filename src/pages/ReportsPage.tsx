@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Download, BarChart3, Inbox } from 'lucide-react';
+import { Download, BarChart3, Inbox, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -98,9 +98,17 @@ export default function ReportsPage() {
                 </div>
                 <div>
                   <p className="font-semibold text-foreground">{report.Descricao || 'Relatório'}</p>
-                  {report.arquivos && report.arquivos.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{report.arquivos.length} arquivo(s)</p>
-                  )}
+                  <div className="flex items-center gap-3 mt-0.5">
+                    {report['Created Date'] && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(report['Created Date']).toLocaleDateString('pt-BR')}
+                      </span>
+                    )}
+                    {report.arquivos && report.arquivos.length > 0 && (
+                      <span className="text-xs text-muted-foreground">{report.arquivos.length} arquivo(s)</span>
+                    )}
+                  </div>
                 </div>
               </div>
               {report.arquivos && report.arquivos.length > 0 && (
