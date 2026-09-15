@@ -145,6 +145,7 @@ const tipoLabels: Record<string, string> = {
   certificado_digital: 'Certificado Digital',
   cnh: 'CNH',
   procuracao: 'Procuração',
+  fechamento: 'Fechamento',
   outro: 'Outro',
 };
 
@@ -784,6 +785,7 @@ export default function AdminAcionistaPage() {
                   <option value="certificado_digital">Certificado Digital</option>
                   <option value="cnh">CNH</option>
                   <option value="procuracao">Procuração</option>
+                  <option value="fechamento">Fechamento</option>
                   <option value="outro">Outro</option>
                 </select>
               </div>

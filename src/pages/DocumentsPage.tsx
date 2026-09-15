@@ -234,11 +234,11 @@ export default function DocumentsPage() {
       </div>
 
       {/* Documentos adicionais (tipos não cobertos pela lista fixa) */}
-      {arquivos.filter(a => !['precontrato','contrato','cnpj','certificado_digital','cnh','procuracao'].includes(a.tipo)).length > 0 && (
+      {arquivos.filter(a => !['precontrato','contrato','cnpj','certificado_digital','cnh','procuracao','fechamento'].includes(a.tipo)).length > 0 && (
         <div className="animate-fade-in" style={{ animationDelay: '0.2s', opacity: 0 }}>
           <p className="text-sm font-semibold text-muted-foreground mb-3">Documentos Adicionais</p>
           <div className="grid gap-3">
-            {arquivos.filter(a => !['precontrato','contrato','cnpj','certificado_digital','cnh','procuracao'].includes(a.tipo)).map((arq) => (
+            {arquivos.filter(a => !['precontrato','contrato','cnpj','certificado_digital','cnh','procuracao','fechamento'].includes(a.tipo)).map((arq) => (
               <div
                 key={arq.id}
                 className="bg-card rounded-xl border p-5 flex items-center justify-between transition-all group hover:shadow-md"

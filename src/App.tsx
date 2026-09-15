@@ -31,6 +31,7 @@ import AdminFinanceiroPage from "./pages/AdminFinanceiroPage";
 import AdminVeiculosRecebidosPage from "./pages/AdminVeiculosRecebidosPage";
 import OnboardingPendingScreen from "./components/OnboardingPendingScreen";
 import SacPage from "./pages/SacPage";
+import FechamentosPage from "./pages/FechamentosPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import NotFound from "./pages/NotFound";
 
@@ -114,6 +115,7 @@ function AppRoutes() {
         <Route path="/documentos" element={<DocumentsPage />} />
         <Route path="/extrato" element={<ExtratoPage />} />
         <Route path="/contratos" element={<ContratosPage />} />
+        <Route path="/fechamentos" element={<FechamentosPage />} />
         <Route path="/financeiro" element={<FinancialPage />} />
         <Route path="/relatorios" element={<ReportsPage />} />
         <Route path="/seguranca" element={<SecurityPage />} />
