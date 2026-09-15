@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   User, MapPin, FolderOpen, FileText, Upload, Trash2, ExternalLink,
-  ArrowLeft, Loader2, Check, Save, Eye, EyeOff,
+  ArrowLeft, Loader2, Check, Save, Eye, EyeOff, Receipt,
 } from 'lucide-react';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -159,7 +159,7 @@ export default function AdminAcionistaPage() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [investidor, setInvestidor] = useState<Investidor | null>(null);
-  const [activeTab, setActiveTab] = useState<'dados' | 'documentos'>('dados');
+  const [activeTab, setActiveTab] = useState<'dados' | 'documentos' | 'fechamentos'>('dados');
 
   // Dados form
   const [dadosForm, setDadosForm] = useState<Record<string, string | null>>({});
@@ -174,6 +174,8 @@ export default function AdminAcionistaPage() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadSenha, setUploadSenha] = useState('');
   const [uploadando, setUploadando] = useState(false);
+  const [fechamentoFile, setFechamentoFile] = useState<File | null>(null);
+  const [uploadandoFechamento, setUploadandoFechamento] = useState(false);
   const [onboardingDocs, setOnboardingDocs] = useState<OnboardingDoc[]>([]);
 
   // ── Load data ─────────────────────────────────────────────────────────────
@@ -486,6 +488,38 @@ export default function AdminAcionistaPage() {
     }
   }
 
+  async function handleUploadFechamento() {
+    if (!fechamentoFile || !investidor) return;
+    setUploadandoFechamento(true);
+    const ext = fechamentoFile.name.split('.').pop() ?? 'bin';
+    const path = `${investidor.id}/fechamento/${Date.now()}.${ext}`;
+    const { error: storageErr } = await supabase.storage
+      .from('investidor-docs')
+      .upload(path, fechamentoFile);
+    if (storageErr) {
+      toast.error('Erro no upload: ' + storageErr.message);
+      setUploadandoFechamento(false);
+      return;
+    }
+    const { data: { publicUrl } } = supabase.storage.from('investidor-docs').getPublicUrl(path);
+    const { error } = await (supabase as any).from('investidor_arquivos').insert({
+      investidor_id: investidor.id,
+      tipo: 'fechamento',
+      nome: fechamentoFile.name,
+      file_url: publicUrl,
+      created_by: session?.user?.id,
+      locadora_bubble_id: investidor.locadora_bubble_id ?? null,
+    });
+    setUploadandoFechamento(false);
+    if (error) {
+      toast.error('Erro ao salvar fechamento: ' + error.message);
+    } else {
+      toast.success('Fechamento enviado!');
+      setFechamentoFile(null);
+      loadArquivos(investidor.id);
+    }
+  }
+
   async function handleDeleteArquivo(arqId: string) {
     await (supabase as any).from('investidor_arquivos').delete().eq('id', arqId);
     if (investidor) loadArquivos(investidor.id);
@@ -543,7 +577,7 @@ export default function AdminAcionistaPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-muted/50 rounded-lg p-1">
-        {(['dados', 'documentos'] as const).map(tab => (
+        {(['dados', 'documentos', 'fechamentos'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -553,7 +587,7 @@ export default function AdminAcionistaPage() {
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            {tab === 'dados' ? 'Dados' : 'Documentos'}
+            {tab === 'dados' ? 'Dados' : tab === 'documentos' ? 'Documentos' : 'Fechamentos'}
           </button>
         ))}
       </div>
@@ -785,7 +819,6 @@ export default function AdminAcionistaPage() {
                   <option value="certificado_digital">Certificado Digital</option>
                   <option value="cnh">CNH</option>
                   <option value="procuracao">Procuração</option>
-                  <option value="fechamento">Fechamento</option>
                   <option value="outro">Outro</option>
                 </select>
               </div>
@@ -827,14 +860,14 @@ export default function AdminAcionistaPage() {
               <div className="flex items-center justify-center py-8 text-muted-foreground">
                 <Loader2 className="w-5 h-5 animate-spin" />
               </div>
-            ) : arquivos.length === 0 && onboardingDocs.every(d => !d.certificado_digital_url && !d.cnh_url && !d.procuracao_url && !d.assinatura_url) ? (
+            ) : arquivos.filter(a => a.tipo !== 'fechamento').length === 0 && onboardingDocs.every(d => !d.certificado_digital_url && !d.cnh_url && !d.procuracao_url && !d.assinatura_url) ? (
               <div className="flex flex-col items-center gap-3 py-8 text-muted-foreground">
                 <FolderOpen className="w-10 h-10 opacity-20" />
                 <p className="text-sm">Nenhum documento enviado ainda.</p>
               </div>
             ) : (
               <div className="space-y-2">
-                {arquivos.map(arq => (
+                {arquivos.filter(a => a.tipo !== 'fechamento').map(arq => (
                   <div key={arq.id} className="flex items-center gap-3 rounded-xl border border-border bg-muted/10 px-4 py-3">
                     <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -888,6 +921,72 @@ export default function AdminAcionistaPage() {
             )}
           </div>
 
+        </div>
+      )}
+
+      {activeTab === 'fechamentos' && (
+        <div className="space-y-6">
+          {/* Upload fechamento */}
+          <div className="bg-card rounded-xl border p-6 space-y-4" style={{ boxShadow: 'var(--shadow-card)' }}>
+            <SectionTitle icon={Upload}>Enviar fechamento</SectionTitle>
+            <div>
+              <FieldLabel>Arquivo (PDF)</FieldLabel>
+              <label className="flex items-center gap-2 cursor-pointer rounded-md border border-input bg-background px-3 h-10 text-sm hover:bg-muted/20 transition-colors">
+                <Upload className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="truncate text-muted-foreground">{fechamentoFile ? fechamentoFile.name : 'Selecionar...'}</span>
+                <input type="file" className="hidden" onChange={e => setFechamentoFile(e.target.files?.[0] ?? null)} accept=".pdf" />
+              </label>
+            </div>
+            <Button
+              size="sm"
+              className="gap-2"
+              disabled={!fechamentoFile || uploadandoFechamento}
+              onClick={handleUploadFechamento}
+            >
+              {uploadandoFechamento ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+              {uploadandoFechamento ? 'Enviando...' : 'Enviar fechamento'}
+            </Button>
+          </div>
+
+          {/* Lista de fechamentos */}
+          <div className="bg-card rounded-xl border p-6 space-y-4" style={{ boxShadow: 'var(--shadow-card)' }}>
+            <SectionTitle icon={Receipt}>Fechamentos enviados</SectionTitle>
+            {loadingArquivos ? (
+              <div className="flex items-center justify-center py-8 text-muted-foreground">
+                <Loader2 className="w-5 h-5 animate-spin" />
+              </div>
+            ) : arquivos.filter(a => a.tipo === 'fechamento').length === 0 ? (
+              <div className="flex flex-col items-center gap-3 py-8 text-muted-foreground">
+                <Receipt className="w-10 h-10 opacity-20" />
+                <p className="text-sm">Nenhum fechamento enviado ainda.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {arquivos.filter(a => a.tipo === 'fechamento').map(arq => (
+                  <div key={arq.id} className="flex items-center gap-3 rounded-xl border border-border bg-muted/10 px-4 py-3">
+                    <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{arq.nome ?? 'Fechamento'}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(arq.created_at).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                    <a href={arq.file_url} target="_blank" rel="noopener noreferrer">
+                      <Button variant="ghost" size="sm" className="h-8 px-2 text-muted-foreground">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </Button>
+                    </a>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-destructive/60 hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDeleteArquivo(arq.id)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
