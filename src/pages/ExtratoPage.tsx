@@ -137,7 +137,7 @@ export default function ExtratoPage() {
 
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-  const rows = filteredTransactions.map(t => ({
+  const toRows = (txs: Transaction[]) => txs.map(t => ({
     Data: new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR'),
     Descrição: t.description || '',
     Tipo: typeLabel[t.type?.toUpperCase()] ?? t.type,
@@ -146,16 +146,61 @@ export default function ExtratoPage() {
     Saldo: t.balance != null ? fmt(t.balance) : '',
   }));
 
-  function downloadXLS() {
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Extrato');
-    XLSX.writeFile(wb, `extrato_${startDate}_${finishDate}.xlsx`);
+  const rows = toRows(filteredTransactions);
+
+  /** Busca TODAS as transações do período (todas as páginas) para exportação */
+  async function fetchAllTransactions(): Promise<Transaction[]> {
+    const all: Transaction[] = [];
+    let currentOffset = 0;
+    const batchSize = 500;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await supabase.functions.invoke('get-extrato', {
+        body: { locadora: currentShareholder.idLocadora, startDate, finishDate, offset: currentOffset, limit: batchSize, order: sortOrder },
+        headers: {
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          'x-user-token': session?.access_token ?? '',
+        },
+      });
+
+      if (error || data?.error) break;
+
+      const items: Transaction[] = data.data ?? [];
+      all.push(...items);
+      hasMore = data.hasMore === true && items.length > 0;
+      currentOffset += items.length;
+    }
+
+    // Aplica o mesmo filtro de tipo
+    return all.filter(t => {
+      if (tipoFiltro === 'receita') return  isCredit(t.type);
+      if (tipoFiltro === 'despesa') return !isCredit(t.type);
+      return true;
+    });
+  }
+
+  async function downloadXLS() {
+    setGeneratingPDF(true);
+    try {
+      const allTxs = totalCount > pageSize ? await fetchAllTransactions() : filteredTransactions;
+      const exportRows = toRows(allTxs);
+      const ws = XLSX.utils.json_to_sheet(exportRows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Extrato');
+      XLSX.writeFile(wb, `extrato_${startDate}_${finishDate}.xlsx`);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao gerar Excel');
+    } finally {
+      setGeneratingPDF(false);
+    }
   }
 
   async function downloadPDF() {
     setGeneratingPDF(true);
     try {
+    const allTxs = totalCount > pageSize ? await fetchAllTransactions() : filteredTransactions;
+    const exportRows = toRows(allTxs);
     const doc = new jsPDF({ orientation: 'landscape' });
 
     // Logo — carrega via fetch para preservar qualidade sem compressão canvas
@@ -242,7 +287,7 @@ export default function ExtratoPage() {
     autoTable(doc, {
       startY: startY + 2,
       head: [['Data', 'Descrição', 'Tipo', 'Valor', 'Saldo']],
-      body: rows.map(r => [r.Data, r.Descrição, r.Tipo, r.Valor, r.Saldo]),
+      body: exportRows.map(r => [r.Data, r.Descrição, r.Tipo, r.Valor, r.Saldo]),
       styles: { fontSize: 8 },
       headStyles: { fillColor: [30, 80, 40] },
       columnStyles: { 3: { halign: 'right' }, 4: { halign: 'right' } },
@@ -259,7 +304,7 @@ export default function ExtratoPage() {
       {generatingPDF && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-50 gap-4">
           <Loader2 className="w-10 h-10 animate-spin text-primary" />
-          <p className="text-base font-semibold text-foreground">Gerando extrato...</p>
+          <p className="text-base font-semibold text-foreground">Gerando arquivo, buscando todas as transações...</p>
         </div>
       )}
 
