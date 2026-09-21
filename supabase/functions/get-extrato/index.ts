@@ -54,33 +54,49 @@ Deno.serve(async (req) => {
       return json({ error: "Token Asaas não encontrado para esta locadora" }, 502);
     }
 
-    // Busca extrato no Asaas
-    const params = new URLSearchParams({
-      startDate,
-      finishDate,
-      offset: String(offset),
-      limit: String(limit),
-      order: order === "asc" ? "asc" : "desc",
-    });
+    // Busca extrato no Asaas (max 100 por request da API)
+    const ASAAS_MAX = 100;
+    const sortOrder = order === "asc" ? "asc" : "desc";
+    const allItems: unknown[] = [];
+    let totalCount = 0;
+    let currentOffset = offset;
+    const remaining = limit;
 
-    const asaasRes = await fetch(
-      `https://api.asaas.com/v3/financialTransactions?${params}`,
-      { headers: { "access_token": asaasToken } }
-    );
+    while (allItems.length < remaining) {
+      const batchLimit = Math.min(ASAAS_MAX, remaining - allItems.length);
+      const params = new URLSearchParams({
+        startDate,
+        finishDate,
+        offset: String(currentOffset),
+        limit: String(batchLimit),
+        order: sortOrder,
+      });
 
-    if (!asaasRes.ok) {
-      const err = await asaasRes.text().catch(() => "");
-      return json({ error: `Erro Asaas: ${asaasRes.status}`, detail: err }, 502);
+      const asaasRes = await fetch(
+        `https://api.asaas.com/v3/financialTransactions?${params}`,
+        { headers: { "access_token": asaasToken } }
+      );
+
+      if (!asaasRes.ok) {
+        const err = await asaasRes.text().catch(() => "");
+        return json({ error: `Erro Asaas: ${asaasRes.status}`, detail: err }, 502);
+      }
+
+      const asaasData = await asaasRes.json();
+      totalCount = asaasData.totalCount ?? 0;
+      const items = asaasData.data ?? [];
+      allItems.push(...items);
+
+      if (!asaasData.hasMore || items.length === 0) break;
+      currentOffset += items.length;
     }
 
-    const asaasData = await asaasRes.json();
-
     return json({
-      data: asaasData.data ?? [],
-      totalCount: asaasData.totalCount ?? 0,
-      limit: asaasData.limit ?? limit,
-      offset: asaasData.offset ?? offset,
-      hasMore: asaasData.hasMore ?? false,
+      data: allItems,
+      totalCount,
+      limit,
+      offset,
+      hasMore: offset + allItems.length < totalCount,
     });
   } catch (err: any) {
     return json({ error: err.message || "Erro interno" }, 500);
