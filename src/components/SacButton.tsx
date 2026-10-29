@@ -4,6 +4,7 @@ import { useAuth, INTERNAL_ROLES } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { marca, grupoVisivel } from '@/lib/marca';
 
 export default function SacButton() {
   const { currentShareholder, user, role } = useAuth();
@@ -46,7 +47,9 @@ export default function SacButton() {
     } catch {
       toast({
         title: 'Erro ao criar ticket',
-        description: 'Tente novamente ou entre em contato pelo e-mail suporte@modocorreinvest.com.br',
+        description: marca.emailSuporte
+          ? `Tente novamente ou entre em contato pelo e-mail ${marca.emailSuporte}`
+          : 'Tente novamente em alguns instantes.',
         variant: 'destructive',
       });
     } finally {
@@ -61,7 +64,7 @@ export default function SacButton() {
         onClick={() => setOpen(true)}
         aria-label="Abrir SAC"
         className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full px-4 py-3 text-white shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl"
-        style={{ background: 'linear-gradient(135deg, hsl(135,55%,42%), hsl(135,65%,32%))' }}
+        style={{ background: 'linear-gradient(135deg, hsl(var(--marca)), hsl(var(--marca-escuro)))' }}
       >
         <MessageCircleQuestion className="w-5 h-5 shrink-0" />
         <span className="text-sm font-semibold hidden sm:block">Suporte (SAC)</span>
@@ -80,7 +83,7 @@ export default function SacButton() {
             {/* Header */}
             <div
               className="flex items-center justify-between px-5 py-4"
-              style={{ background: 'linear-gradient(135deg, hsl(135,55%,42%), hsl(135,65%,32%))' }}
+              style={{ background: 'linear-gradient(135deg, hsl(var(--marca)), hsl(var(--marca-escuro)))' }}
             >
               <div className="flex items-center gap-2.5">
                 <MessageCircleQuestion className="w-5 h-5 text-white" />
@@ -107,7 +110,7 @@ export default function SacButton() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground font-medium">Locadora</span>
-                  <span className="text-xs font-semibold text-foreground">{currentShareholder.group || '—'}</span>
+                  <span className="text-xs font-semibold text-foreground">{grupoVisivel(currentShareholder.group)}</span>
                 </div>
               </div>
 
@@ -135,7 +138,7 @@ export default function SacButton() {
                   type="submit"
                   disabled={loading || !question.trim()}
                   className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 shrink-0"
-                  style={{ background: 'linear-gradient(135deg, hsl(135,55%,42%), hsl(135,65%,32%))' }}
+                  style={{ background: 'linear-gradient(135deg, hsl(var(--marca)), hsl(var(--marca-escuro)))' }}
                 >
                   {loading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

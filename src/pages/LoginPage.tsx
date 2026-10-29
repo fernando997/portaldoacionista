@@ -1,21 +1,15 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Lock, Mail, KeyRound, Loader2, Shield, ChevronRight, CheckCircle2, Eye, EyeOff, AlertCircle, TrendingUp } from 'lucide-react';
-import logo from '@/assets/logo.png';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { marca, classeLogo, lerAvisoAcesso } from '@/lib/marca';
 
 const FEATURES = [
   'Acompanhe receitas e despesas em tempo real',
   'Visualize sua frota e taxa de ocupação',
   'Acesse contratos e documentos a qualquer hora',
-];
-
-const STATS = [
-  { val: 'R$11,6M', suffix: '+', lbl: 'Capital gerido' },
-  { val: '1K',      suffix: '+', lbl: 'Motos ativas' },
-  { val: '100',     suffix: '%', lbl: 'Transparência' },
 ];
 
 export default function LoginPage() {
@@ -25,7 +19,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [fieldError, setFieldError] = useState('');
+  const [fieldError, setFieldError] = useState(lerAvisoAcesso);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,16 +34,16 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[hsl(220,65%,5%)]">
+    <div className="min-h-screen flex bg-[hsl(var(--marca-fundo-login))]">
 
       {/* ── Left panel — branding ─────────────────────────────── */}
       <div className="hidden lg:flex lg:w-[54%] relative overflow-hidden flex-col justify-between p-12 xl:p-16">
 
         {/* Background layers */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[hsl(222,65%,8%)] via-[hsl(220,62%,12%)] to-[hsl(215,55%,18%)]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--marca-fundo-2))] via-[hsl(var(--marca-fundo-login-2))] to-[hsl(var(--marca-fundo-login-3))]" />
 
         {/* Ambient glow blobs */}
-        <div className="absolute top-[-80px] right-[-80px] w-[700px] h-[700px] rounded-full bg-[hsl(135,60%,42%)]/[0.11] blur-[180px] pointer-events-none" />
+        <div className="absolute top-[-80px] right-[-80px] w-[700px] h-[700px] rounded-full bg-[hsl(var(--marca)/0.11)] blur-[180px] pointer-events-none" />
         <div className="absolute bottom-[-60px] left-[-120px] w-[500px] h-[500px] rounded-full bg-[hsl(210,80%,55%)]/[0.09] blur-[140px] pointer-events-none" />
         <div className="absolute top-[40%] left-[10%] w-[300px] h-[300px] rounded-full bg-[hsl(260,60%,55%)]/[0.06] blur-[100px] pointer-events-none" />
 
@@ -66,9 +60,9 @@ export default function LoginPage() {
 
           {/* Logo */}
           <img
-            src={logo}
-            alt="Modo Corre"
-            className="h-64 w-auto object-contain shrink-0 brightness-0 invert opacity-90 animate-fade-in"
+            src={marca.logoFundoEscuro.src}
+            alt={marca.nome}
+            className={`${marca.tamanhoLogo.login} w-auto object-contain shrink-0 opacity-90 animate-fade-in ${classeLogo(marca.logoFundoEscuro)}`}
           />
 
           {/* Main copy */}
@@ -76,15 +70,15 @@ export default function LoginPage() {
             <div className="space-y-5">
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.08] border border-white/[0.12] backdrop-blur-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-[hsl(135,60%,52%)] animate-pulse" />
-                <Shield className="w-3.5 h-3.5 text-[hsl(135,55%,52%)]" />
-                <span className="text-xs font-medium text-white/65 tracking-wide">Portal do Licenciado</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--marca-claro))] animate-pulse" />
+                <Shield className="w-3.5 h-3.5 text-[hsl(var(--marca-claro))]" />
+                <span className="text-xs font-medium text-white/65 tracking-wide">{marca.selo}</span>
               </div>
 
               {/* Headline */}
               <h1 className="font-display text-4xl xl:text-[3.25rem] font-bold leading-[1.08] text-white/95">
                 Seu investimento,{' '}
-                <span className="bg-gradient-to-r from-[hsl(135,60%,55%)] to-[hsl(150,55%,45%)] bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-[hsl(var(--marca-claro))] to-[hsl(var(--marca-medio))] bg-clip-text text-transparent">
                   sob controle
                 </span>.
               </h1>
@@ -101,8 +95,8 @@ export default function LoginPage() {
                   key={f}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.05] transition-colors duration-200 group"
                 >
-                  <div className="w-5 h-5 rounded-full bg-[hsl(135,55%,42%)]/20 flex items-center justify-center shrink-0 group-hover:bg-[hsl(135,55%,42%)]/30 transition-colors">
-                    <CheckCircle2 className="w-3 h-3 text-[hsl(135,60%,55%)]" />
+                  <div className="w-5 h-5 rounded-full bg-[hsl(var(--marca)/0.2)] flex items-center justify-center shrink-0 group-hover:bg-[hsl(var(--marca)/0.3)] transition-colors">
+                    <CheckCircle2 className="w-3 h-3 text-[hsl(var(--marca-claro))]" />
                   </div>
                   <span className="text-sm text-white/60 group-hover:text-white/75 transition-colors">{f}</span>
                 </li>
@@ -110,29 +104,31 @@ export default function LoginPage() {
             </ul>
 
             {/* Stats */}
+            {marca.numeros.length > 0 && (
             <div className="grid grid-cols-3 gap-3 max-w-md">
-              {STATS.map(({ val, suffix, lbl }) => (
+              {marca.numeros.map(({ val, suffix, lbl }) => (
                 <div
                   key={lbl}
-                  className="relative bg-white/[0.05] border border-white/[0.08] rounded-2xl p-4 hover:bg-white/[0.08] hover:border-[hsl(135,55%,48%)]/25 transition-all duration-300 group overflow-hidden"
+                  className="relative bg-white/[0.05] border border-white/[0.08] rounded-2xl p-4 hover:bg-white/[0.08] hover:border-[hsl(var(--marca-medio)/0.25)] transition-all duration-300 group overflow-hidden"
                 >
                   {/* Top accent on hover */}
-                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[hsl(135,55%,52%)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[hsl(var(--marca-claro)/0.6)] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                   <p className="text-2xl xl:text-3xl font-bold text-white/95 leading-none tabular-nums">
-                    {val}<span className="text-[hsl(135,60%,55%)]">{suffix}</span>
+                    {val}<span className="text-[hsl(var(--marca-claro))]">{suffix}</span>
                   </p>
                   <p className="text-[10px] font-semibold text-white/35 mt-2 tracking-wider uppercase">{lbl}</p>
                 </div>
               ))}
             </div>
+            )}
           </div>
 
           {/* Footer */}
           <div className="flex items-center gap-2">
             <TrendingUp className="w-3 h-3 text-white/20" />
             <p className="text-xs text-white/25">
-              © {new Date().getFullYear()} Grupo Modo Corre. Todos os direitos reservados.
+              © {new Date().getFullYear()} {marca.nome}. Todos os direitos reservados.
             </p>
           </div>
         </div>
@@ -144,7 +140,7 @@ export default function LoginPage() {
         style={{ background: 'radial-gradient(ellipse at 50% 45%, hsl(210,30%,98%) 0%, hsl(215,22%,92%) 100%)' }}
       >
         {/* Top accent line */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[hsl(135,55%,42%)] to-transparent opacity-50" />
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[hsl(var(--marca))] to-transparent opacity-50" />
 
         {/* Subtle background mesh */}
         <div className="absolute inset-0 opacity-[0.018]" style={{
@@ -156,11 +152,11 @@ export default function LoginPage() {
 
           {/* Mobile — dark logo header */}
           <div className="lg:hidden text-center mb-8 space-y-3">
-            <div className="inline-flex flex-col items-center gap-3 px-8 py-5 rounded-2xl bg-[hsl(220,65%,7%)] border border-white/[0.08]">
-              <img src={logo} alt="Modo Corre" className="h-24 w-auto object-contain shrink-0 brightness-0 invert opacity-90" />
+            <div className="inline-flex flex-col items-center gap-3 px-8 py-5 rounded-2xl bg-[hsl(var(--marca-fundo-3))] border border-white/[0.08]">
+              <img src={marca.logoFundoEscuro.src} alt={marca.nome} className={`${marca.tamanhoLogo.loginCelular} w-auto object-contain shrink-0 opacity-90 ${classeLogo(marca.logoFundoEscuro)}`} />
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.08] border border-white/[0.1]">
-                <Shield className="w-3 h-3 text-[hsl(135,55%,52%)]" />
-                <span className="text-xs font-medium text-white/60">Portal do Licenciado</span>
+                <Shield className="w-3 h-3 text-[hsl(var(--marca-claro))]" />
+                <span className="text-xs font-medium text-white/60">{marca.selo}</span>
               </div>
             </div>
           </div>
@@ -170,7 +166,7 @@ export default function LoginPage() {
             style={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04)' }}
           >
             {/* Top accent bar */}
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[hsl(135,55%,42%)]/0 via-[hsl(135,55%,42%)] to-[hsl(135,55%,42%)]/0" />
+            <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[hsl(var(--marca)/0)] via-[hsl(var(--marca))] to-[hsl(var(--marca)/0)]" />
 
             {/* Heading */}
             <div className="space-y-1.5 pt-1">

@@ -1,7 +1,7 @@
 import { Package, LogOut, CheckCircle2, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth, OnboardingStatus } from '@/contexts/AuthContext';
-import logo from '@/assets/logo.png';
+import { marca } from '@/lib/marca';
 
 function calcChecklist(data: OnboardingStatus) {
   const items = [
@@ -25,7 +25,7 @@ export default function OnboardingPendingScreen() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
-      <img src={logo} alt="Modo Corre" className="h-16 w-auto mb-10 opacity-80" />
+      <img src={marca.logoFundoClaro} alt={marca.nome} className="h-16 w-auto mb-10 opacity-80" />
 
       <div className="w-16 h-16 rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center mb-6">
         <Package className="w-8 h-8 text-amber-600" />

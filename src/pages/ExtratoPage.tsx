@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Search, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus, Receipt, FileSpreadsheet, FileText, ArrowUpDown } from 'lucide-react';
-import logo from '@/assets/logo.png';
+import { marca } from '@/lib/marca';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -208,7 +208,7 @@ export default function ExtratoPage() {
     let logoW = logoMaxH;
     let logoH = logoMaxH;
     try {
-      const resp    = await fetch(logo);
+      const resp    = await fetch(marca.logoFundoClaro);
       const blob    = await resp.blob();
       const imgData = await new Promise<string>((resolve) => {
         const reader = new FileReader();
@@ -250,7 +250,7 @@ export default function ExtratoPage() {
     const textX = 14 + logoW + 5;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Extrato movimentado da sua conta pela Modo Corre', textX, 17);
+    doc.text(`Extrato movimentado da sua conta pela ${marca.nomeCurto}`, textX, 17);
 
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
@@ -313,7 +313,7 @@ export default function ExtratoPage() {
         <div>
           <p className="text-sm font-medium text-muted-foreground">Financeiro</p>
           <h1 className="section-title mb-0 text-xl sm:text-2xl leading-tight">
-            Extrato movimentado da sua conta pela Modo Corre
+            Extrato movimentado da sua conta pela {marca.nomeCurto}
           </h1>
         </div>
         {searched && transactions.length > 0 && (

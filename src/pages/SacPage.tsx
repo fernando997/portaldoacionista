@@ -389,7 +389,7 @@ export default function SacPage() {
                               <div className={cn(
                                 'rounded-2xl px-3.5 py-2.5 text-sm',
                                 isOwn
-                                  ? 'bg-[hsl(135,55%,42%)]/20 text-foreground border border-[hsl(135,55%,42%)]/25 rounded-br-sm'
+                                  ? 'bg-[hsl(var(--marca)/0.2)] text-foreground border border-[hsl(var(--marca)/0.25)] rounded-br-sm'
                                   : 'bg-[hsl(210,80%,52%)]/12 text-foreground border border-[hsl(210,80%,52%)]/20 rounded-bl-sm',
                               )}>
                                 {!isOwn && (

@@ -4,7 +4,7 @@ import { ShareholderSidebar } from '@/components/ShareholderSidebar';
 import { AdminSidebar } from '@/components/AdminSidebar';
 import { useAuth, INTERNAL_ROLES } from '@/contexts/AuthContext';
 import { Bell, Home, Bike, Map, ScrollText, FileSignature, BarChart3, FileText, ShieldCheck, Users, UserPlus, Link2, FolderOpen, MessageCircle } from 'lucide-react';
-import logo from '@/assets/logo.png';
+import { marca, grupoVisivel } from '@/lib/marca';
 import { useLocation, useNavigate } from 'react-router-dom';
 import SacButton from '@/components/SacButton';
 import { supabase } from '@/integrations/supabase/client';
@@ -69,7 +69,7 @@ export default function PortalLayout({ children, type }: PortalLayoutProps) {
     .split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
   const accentColor = type === 'shareholder'
-    ? 'hsl(135,55%,42%)'
+    ? 'hsl(var(--marca))'
     : 'hsl(210,80%,52%)';
 
   return (
@@ -86,7 +86,7 @@ export default function PortalLayout({ children, type }: PortalLayoutProps) {
             <SidebarTrigger className="shrink-0 text-muted-foreground hover:text-foreground transition-colors" />
 
             {/* Mobile logo */}
-            <img src={logo} alt="Modo Corre" className="h-8 w-auto lg:hidden object-contain" />
+            <img src={marca.logoFundoClaro} alt={marca.nome} className="h-8 w-auto lg:hidden object-contain" />
 
             {/* Separator — desktop only */}
             <div className="hidden lg:block w-px h-5 bg-border/60 shrink-0" />
@@ -146,7 +146,7 @@ export default function PortalLayout({ children, type }: PortalLayoutProps) {
                   className="w-8 h-8 rounded-full flex items-center justify-center"
                   style={
                     type === 'shareholder'
-                      ? { background: 'linear-gradient(135deg, hsl(135,55%,42%), hsl(135,65%,32%))' }
+                      ? { background: 'linear-gradient(135deg, hsl(var(--marca)), hsl(var(--marca-escuro)))' }
                       : { background: 'linear-gradient(135deg, hsl(220,60%,28%), hsl(220,60%,18%))' }
                   }
                 >
@@ -180,7 +180,7 @@ export default function PortalLayout({ children, type }: PortalLayoutProps) {
                 >
                   {type === 'admin'
                     ? ({ superadmin: 'Acesso máximo', admin: 'Acesso total', viewer: 'Somente leitura', vendedor: 'Equipe de vendas', sac: 'Atendimento', suporte: 'Suporte técnico' }[role as string] || 'Acesso total')
-                    : currentShareholder.group}
+                    : grupoVisivel(currentShareholder.group)}
                 </p>
               </div>
             </div>

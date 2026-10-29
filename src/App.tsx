@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth, INTERNAL_ROLES } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
+import { podeEntrarNaMarca, guardarAvisoAcesso } from "@/lib/marca";
 import LoginPage from "./pages/LoginPage";
 import PortalLayout from "./components/PortalLayout";
 import ShareholderHome from "./pages/ShareholderHome";
@@ -43,9 +45,18 @@ function PermRoute({ permission, element }: { permission: string; element: React
 }
 
 function AppRoutes() {
-  const { role, loading, onboardingPending, hasPermission } = useAuth();
+  const { role, loading, onboardingPending, hasPermission, currentShareholder, user, logout } = useAuth();
 
-  if (loading) {
+  // Domínio de parceiro (white label): quem não é acionista dele é deslogado
+  const barrado = !!role && !podeEntrarNaMarca(INTERNAL_ROLES.includes(role), currentShareholder, user?.email ?? '');
+  useEffect(() => {
+    if (!barrado) return;
+    guardarAvisoAcesso();
+    logout();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [barrado]);
+
+  if (loading || barrado) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { grupoVisivel } from '@/lib/marca';
 
 function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
@@ -89,7 +90,7 @@ export default function SecurityPage() {
         style={{ animationDelay: '0.05s', opacity: 0, boxShadow: 'var(--shadow-card)' }}
       >
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[hsl(135,55%,45%)] to-[hsl(135,65%,30%)] flex items-center justify-center shadow-lg shadow-[hsl(135,55%,42%)]/20 shrink-0">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[hsl(var(--marca-medio))] to-[hsl(var(--marca-escuro))] flex items-center justify-center shadow-lg shadow-[hsl(var(--marca)/0.2)] shrink-0">
             <span className="text-lg font-bold text-white">{initials}</span>
           </div>
           <div>
@@ -113,7 +114,7 @@ export default function SecurityPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
           <InfoRow icon={User} label="Nome completo" value={currentShareholder.name || '—'} />
           <InfoRow icon={Mail} label="E-mail" value={currentShareholder.email || '—'} />
-          <InfoRow icon={Users} label="Grupo" value={currentShareholder.group || '—'} />
+          <InfoRow icon={Users} label="Grupo" value={grupoVisivel(currentShareholder.group)} />
           <InfoRow icon={BarChart2} label="Participação" value={`${currentShareholder.participationPercent}%`} />
           <InfoRow icon={ShieldCheck} label="Status" value={currentShareholder.status} />
         </div>

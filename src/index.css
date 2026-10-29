@@ -52,6 +52,26 @@
     --info: 210 80% 52%;
     --info-foreground: 0 0% 100%;
 
+    /* Marca (white label): valores da Modo Corre; outros domínios trocam em src/lib/marca.ts */
+    --primary-2: 220 60% 28%;
+    --marca: 135 55% 42%;
+    --marca-claro: 135 60% 55%;
+    --marca-medio: 135 55% 48%;
+    --marca-escuro: 135 65% 30%;
+    --marca-gradiente: 135 65% 35%;
+    --marca-fundo-1: 222 65% 10%;
+    --marca-fundo-2: 220 62% 8%;
+    --marca-fundo-3: 220 60% 6%;
+    --marca-fundo-login: 220 65% 5%;
+    --marca-fundo-login-2: 220 62% 12%;
+    --marca-fundo-login-3: 215 55% 18%;
+    --marca-texto-menu: 210 25% 55%;
+    --marca-heroi-1: 222 65% 16%;
+    --marca-heroi-2: 220 62% 12%;
+    --marca-heroi-3: 220 60% 8%;
+    --neutro-1: 220 60% 35%;
+    --neutro-2: 220 60% 22%;
+
     --font-display: 'Playfair Display', serif;
     --font-body: 'Montserrat', sans-serif;
 
@@ -158,11 +178,11 @@
   }
 
   .gradient-accent {
-    background: linear-gradient(135deg, hsl(135 55% 42%), hsl(135 65% 35%));
+    background: linear-gradient(135deg, hsl(var(--marca)), hsl(var(--marca-gradiente)));
   }
 
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(220 60% 18%), hsl(220 60% 28%));
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-2)));
   }
 }
 

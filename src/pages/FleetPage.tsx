@@ -155,13 +155,13 @@ export default function FleetPage() {
               label="Total de Motos"
               value={total}
               icon={Bike}
-              gradient="linear-gradient(135deg, hsl(220,60%,28%), hsl(220,60%,18%))"
+              gradient="linear-gradient(135deg, hsl(var(--primary-2)), hsl(var(--primary)))"
             />
             <FleetStatCard
               label="Locadas"
               value={locadas}
               icon={CheckCircle}
-              gradient="linear-gradient(135deg, hsl(135,55%,42%), hsl(135,65%,32%))"
+              gradient="linear-gradient(135deg, hsl(var(--marca)), hsl(var(--marca-escuro)))"
               sub={`${taxaLocacao}% da frota`}
             />
             <FleetStatCard

@@ -28,7 +28,7 @@ function KpiCard({
 
   const iconStyle =
     highlight === 'accent'
-      ? { background: 'linear-gradient(135deg, hsl(135,55%,42%), hsl(135,65%,32%))', color: '#fff' }
+      ? { background: 'linear-gradient(135deg, hsl(var(--marca)), hsl(var(--marca-escuro)))', color: '#fff' }
       : highlight === 'warning'
       ? { background: 'linear-gradient(135deg, hsl(38,92%,50%), hsl(38,85%,42%))', color: '#fff' }
       : undefined;
@@ -148,7 +148,7 @@ function ProgressKpiCard({ label, value, total, icon: Icon }: {
                 style={{
                   width: `${pct}%`,
                   background: isHigh
-                    ? 'linear-gradient(90deg, hsl(135,55%,42%), hsl(135,65%,52%))'
+                    ? 'linear-gradient(90deg, hsl(var(--marca)), hsl(var(--marca-claro)))'
                     : 'linear-gradient(90deg, hsl(215,80%,55%), hsl(210,80%,65%))',
                 }}
               />
@@ -194,11 +194,11 @@ function SectionHeader({ label, icon: Icon, accent }: { label: string; icon?: an
       {Icon ? (
         <div
           className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
-          style={{ background: accent ? 'hsl(135,55%,42%,0.12)' : 'hsl(220,60%,18%,0.08)' }}
+          style={{ background: accent ? 'hsl(var(--marca) / 0.12)' : 'hsl(var(--primary) / 0.08)' }}
         >
           <Icon
             className="w-3.5 h-3.5"
-            style={{ color: accent ? 'hsl(135,55%,42%)' : 'hsl(220,60%,35%)' }}
+            style={{ color: accent ? 'hsl(var(--marca))' : 'hsl(var(--neutro-1))' }}
           />
         </div>
       ) : (
@@ -206,8 +206,8 @@ function SectionHeader({ label, icon: Icon, accent }: { label: string; icon?: an
           className="w-1 h-4 rounded-full shrink-0"
           style={{
             background: accent
-              ? 'linear-gradient(180deg, hsl(135,60%,52%), hsl(135,55%,38%))'
-              : 'linear-gradient(180deg, hsl(220,60%,35%), hsl(220,60%,22%))',
+              ? 'linear-gradient(180deg, hsl(var(--marca-claro)), hsl(var(--marca-escuro)))'
+              : 'linear-gradient(180deg, hsl(var(--neutro-1)), hsl(var(--neutro-2)))',
           }}
         />
       )}
@@ -286,11 +286,11 @@ export default function ShareholderHome() {
       {/* ── Hero ─────────────────────────────────────────────── */}
       <div
         className="relative overflow-hidden rounded-2xl px-6 py-8 text-white animate-fade-in"
-        style={{ background: 'linear-gradient(135deg, hsl(222,65%,16%) 0%, hsl(220,62%,12%) 50%, hsl(220,60%,8%) 100%)' }}
+        style={{ background: 'linear-gradient(135deg, hsl(var(--marca-heroi-1)) 0%, hsl(var(--marca-heroi-2)) 50%, hsl(var(--marca-heroi-3)) 100%)' }}
       >
         {/* Blobs */}
         <div className="absolute top-[-40px] right-[-40px] w-64 h-64 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, hsl(135,55%,42%,0.18) 0%, transparent 70%)' }} />
+          style={{ background: 'radial-gradient(circle, hsl(var(--marca) / 0.18) 0%, transparent 70%)' }} />
         <div className="absolute bottom-[-30px] left-[30%] w-48 h-48 rounded-full pointer-events-none"
           style={{ background: 'radial-gradient(circle, hsl(210,80%,52%,0.1) 0%, transparent 70%)' }} />
 
@@ -303,11 +303,11 @@ export default function ShareholderHome() {
           <div className="flex items-center gap-4">
             <div className="relative shrink-0">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
-                style={{ background: 'linear-gradient(135deg, hsl(135,55%,45%), hsl(135,65%,30%))' }}
+                style={{ background: 'linear-gradient(135deg, hsl(var(--marca-medio)), hsl(var(--marca-escuro)))' }}
               >
                 <span className="text-lg font-bold text-white" style={{ fontFamily: 'var(--font-body)' }}>{initials}</span>
               </div>
-              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-[hsl(135,60%,50%)] border-2 border-[hsl(220,60%,12%)] rounded-full" />
+              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-[hsl(var(--marca-medio))] border-2 border-[hsl(var(--marca-heroi-2))] rounded-full" />
             </div>
 
             <div className="space-y-0.5">
@@ -337,7 +337,7 @@ export default function ShareholderHome() {
 
             {/* Participation pill */}
             {participacao && (
-              <div className="flex items-center gap-1.5 text-xs font-semibold bg-[hsl(135,55%,42%)]/20 border border-[hsl(135,55%,42%)]/30 text-[hsl(135,60%,62%)] px-3 py-1.5 rounded-full"
+              <div className="flex items-center gap-1.5 text-xs font-semibold bg-[hsl(var(--marca)/0.2)] border border-[hsl(var(--marca)/0.3)] text-[hsl(var(--marca-claro))] px-3 py-1.5 rounded-full"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 <PieChart className="w-3 h-3" />
@@ -393,7 +393,7 @@ export default function ShareholderHome() {
 
             <div className="flex items-start justify-between">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: 'linear-gradient(135deg, hsl(135,55%,42%), hsl(135,65%,32%))' }}
+                style={{ background: 'linear-gradient(135deg, hsl(var(--marca)), hsl(var(--marca-escuro)))' }}
               >
                 <DollarSign className="h-[18px] w-[18px] text-white" />
               </div>

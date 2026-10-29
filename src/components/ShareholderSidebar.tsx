@@ -13,8 +13,8 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import logo from '@/assets/logo.png';
 import { cn } from '@/lib/utils';
+import { marca, classeLogo, grupoVisivel } from '@/lib/marca';
 
 const NAV_GROUPS = [
   {
@@ -63,19 +63,19 @@ function NavItem({ title, url, icon: Icon, end = false, badge = 0 }: { title: st
           className={cn(
             'relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200',
             isActive
-              ? 'bg-[hsl(135,55%,42%)]/[0.18] text-white'
-              : 'text-[hsl(210,25%,55%)] hover:text-white/90 hover:bg-white/[0.06]',
+              ? 'bg-[hsl(var(--marca)/0.18)] text-white'
+              : 'text-[hsl(var(--marca-texto-menu))] hover:text-white/90 hover:bg-white/[0.06]',
           )}
           style={{ fontFamily: 'var(--font-body)', fontWeight: isActive ? 600 : 500 }}
         >
           {/* Active left bar */}
           {isActive && (
-            <span className="absolute left-0 top-2.5 bottom-2.5 w-[3px] bg-gradient-to-b from-[hsl(135,60%,55%)] to-[hsl(135,55%,40%)] rounded-r-full shadow-[0_0_8px_hsl(135,55%,48%)]" />
+            <span className="absolute left-0 top-2.5 bottom-2.5 w-[3px] bg-gradient-to-b from-[hsl(var(--marca-claro))] to-[hsl(var(--marca-escuro))] rounded-r-full shadow-[0_0_8px_hsl(var(--marca-medio))]" />
           )}
 
           <Icon className={cn(
             'shrink-0 transition-colors duration-200',
-            isActive ? 'w-[17px] h-[17px] text-[hsl(135,60%,58%)]' : 'w-[17px] h-[17px] text-current',
+            isActive ? 'w-[17px] h-[17px] text-[hsl(var(--marca-claro))]' : 'w-[17px] h-[17px] text-current',
           )} />
 
           {!collapsed && (
@@ -83,14 +83,14 @@ function NavItem({ title, url, icon: Icon, end = false, badge = 0 }: { title: st
           )}
 
           {!collapsed && badge > 0 && (
-            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[hsl(135,55%,42%)] text-white text-[10px] font-bold shrink-0">
+            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[hsl(var(--marca))] text-white text-[10px] font-bold shrink-0">
               {badge > 9 ? '9+' : badge}
             </span>
           )}
 
           {/* Active chevron */}
           {!collapsed && isActive && badge === 0 && (
-            <ChevronRight className="w-3 h-3 text-[hsl(135,55%,48%)]/60 shrink-0" />
+            <ChevronRight className="w-3 h-3 text-[hsl(var(--marca-medio)/0.6)] shrink-0" />
           )}
         </Link>
       </SidebarMenuButton>
@@ -132,12 +132,12 @@ export function ShareholderSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent className="overflow-x-hidden" style={{
-        background: 'linear-gradient(180deg, hsl(222,65%,10%) 0%, hsl(220,62%,8%) 50%, hsl(220,60%,6%) 100%)',
+        background: 'linear-gradient(180deg, hsl(var(--marca-fundo-1)) 0%, hsl(var(--marca-fundo-2)) 50%, hsl(var(--marca-fundo-3)) 100%)',
       }}>
 
         {/* Ambient glow */}
         <div className="absolute top-0 left-0 right-0 h-48 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at 50% -20%, hsl(135,55%,42%,0.12) 0%, transparent 70%)' }}
+          style={{ background: 'radial-gradient(ellipse at 50% -20%, hsl(var(--marca) / 0.12) 0%, transparent 70%)' }}
         />
 
         {/* Logo */}
@@ -146,9 +146,12 @@ export function ShareholderSidebar() {
           collapsed ? 'px-2 py-4' : 'px-5 py-5',
         )}>
           <img
-            src={logo}
-            alt="Modo Corre"
-            className={cn('brightness-0 invert transition-all duration-300 object-contain mx-auto', collapsed ? 'h-14 w-auto' : 'h-24 w-auto')}
+            src={collapsed ? marca.simbolo.src : marca.logoFundoEscuro.src}
+            alt={marca.nome}
+            className={cn(
+              'transition-all duration-300 object-contain mx-auto',
+              collapsed ? [classeLogo(marca.simbolo), marca.tamanhoLogo.recolhido] : [classeLogo(marca.logoFundoEscuro), marca.tamanhoLogo.menu, 'w-auto'],
+            )}
           />
           {/* Bottom separator gradient */}
           <div className="absolute bottom-0 left-3 right-3 h-px bg-gradient-to-r from-transparent via-white/[0.1] to-transparent" />
@@ -199,31 +202,31 @@ export function ShareholderSidebar() {
       {/* Footer */}
       <SidebarFooter
         className="border-t border-white/[0.07] p-3"
-        style={{ background: 'hsl(220,60%,6%)' }}
+        style={{ background: 'hsl(var(--marca-fundo-3))' }}
       >
         {!collapsed ? (
           <div className="flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-white/[0.05] transition-colors duration-200 mb-1 group">
             {/* Avatar */}
             <div className="relative shrink-0">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[hsl(135,55%,45%)] to-[hsl(135,65%,30%)] flex items-center justify-center shadow-lg shadow-[hsl(135,55%,42%)]/20">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[hsl(var(--marca-medio))] to-[hsl(var(--marca-escuro))] flex items-center justify-center shadow-lg shadow-[hsl(var(--marca)/0.2)]">
                 <span className="text-[12px] font-bold text-white" style={{ fontFamily: 'var(--font-body)' }}>{initials}</span>
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[hsl(135,60%,50%)] border-2 border-[hsl(220,60%,6%)] rounded-full" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[hsl(var(--marca-medio))] border-2 border-[hsl(var(--marca-fundo-3))] rounded-full" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[13px] font-semibold text-white/90 truncate leading-tight" style={{ fontFamily: 'var(--font-body)' }}>
                 {currentShareholder.name}
               </p>
               <p className="text-[11px] text-white/35 truncate mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
-                {currentShareholder.group}
+                {grupoVisivel(currentShareholder.group)}
               </p>
             </div>
           </div>
         ) : (
           <div className="flex justify-center mb-1">
-            <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-[hsl(135,55%,45%)] to-[hsl(135,65%,30%)] flex items-center justify-center shadow-lg shadow-[hsl(135,55%,42%)]/20">
+            <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-[hsl(var(--marca-medio))] to-[hsl(var(--marca-escuro))] flex items-center justify-center shadow-lg shadow-[hsl(var(--marca)/0.2)]">
               <span className="text-[12px] font-bold text-white" style={{ fontFamily: 'var(--font-body)' }}>{initials}</span>
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[hsl(135,60%,50%)] border-2 border-[hsl(220,60%,6%)] rounded-full" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[hsl(var(--marca-medio))] border-2 border-[hsl(var(--marca-fundo-3))] rounded-full" />
             </div>
           </div>
         )}
