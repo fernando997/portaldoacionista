@@ -88,7 +88,7 @@ const WISER: Marca = {
     '--sidebar-border': '30 5% 16%',
   },
   acesso: {
-    emails: ['69683638000170@modocorreinvest.com.br'], // conta da Wiser (CNPJ 69.683.638/0001-70)
+    emails: ['wiser@wiserental.com.br', '69683638000170@modocorreinvest.com.br'], // conta da Wiser (CNPJ 69.683.638/0001-70); o 2º é o e-mail antigo
     grupos: [],
     locadoras: [],
   },
