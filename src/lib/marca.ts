@@ -99,8 +99,6 @@ const CHAVE_TESTE = 'marca_teste';
 
 function escolherMarca(): Marca {
   const host = window.location.hostname.toLowerCase().replace(/^www\./, '');
-  const doDominio = MARCAS.find((m) => m.dominios.includes(host));
-  if (doDominio) return doDominio;
 
   // Para testar sem domínio: localhost, prévias da Vercel e (temporário) o portal da Modo Corre aceitam ?marca=wiser (fica salvo; ?marca=modocorre volta)
   if (host === 'localhost' || host === '127.0.0.1' || host.endsWith('.vercel.app') || host === 'portalmodocorre.com.br') {
@@ -112,7 +110,8 @@ function escolherMarca(): Marca {
     const teste = MARCAS.find((m) => m.id === id);
     if (teste) return teste;
   }
-  return MODO_CORRE;
+
+  return MARCAS.find((m) => m.dominios.includes(host)) ?? MODO_CORRE;
 }
 
 export const marca = escolherMarca();
