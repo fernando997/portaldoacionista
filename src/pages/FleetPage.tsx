@@ -108,7 +108,10 @@ export default function FleetPage() {
   const locadas     = fleetData?.locadas ?? 0;
   const disponiveis = fleetData?.disponiveis ?? 0;
   const taxaLocacao = total > 0 ? Math.round((locadas / total) * 100) : 0;
-  const veiculos    = fleetData?.veiculos ?? [];
+  const semAcento = (s?: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const veiculos    = (fleetData?.veiculos ?? []).filter(v =>
+    !semAcento(v.status_veiculo_desc).includes('desativad') && !semAcento(v.status).includes('desativad')
+  );
   const [poolFilter, setPoolFilter] = useState<'todos' | 'ativo' | 'aguardando'>('todos');
 
   const ativosNoPool    = veiculos.filter(v => v.primeira_locacao).length;
