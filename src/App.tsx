@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth, INTERNAL_ROLES } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
-import { podeEntrarNaMarca, guardarAvisoAcesso } from "@/lib/marca";
+import { podeEntrarNaMarca, guardarAvisoAcesso, abaVisivel } from "@/lib/marca";
 import LoginPage from "./pages/LoginPage";
 import PortalLayout from "./components/PortalLayout";
 import ShareholderHome from "./pages/ShareholderHome";
@@ -123,7 +123,7 @@ function AppRoutes() {
         <Route path="/" element={<ShareholderHome />} />
         <Route path="/frota" element={<FleetPage />} />
         <Route path="/mapa" element={<MapPage />} />
-        <Route path="/documentos" element={<DocumentsPage />} />
+        {abaVisivel('/documentos') && <Route path="/documentos" element={<DocumentsPage />} />}
         <Route path="/extrato" element={<ExtratoPage />} />
         <Route path="/contratos" element={<ContratosPage />} />
         <Route path="/fechamentos" element={<FechamentosPage />} />

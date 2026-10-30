@@ -21,6 +21,7 @@ export type Marca = {
   emailSuporte: string | null;
   cores: Record<string, string>; // variáveis CSS (HSL sem "hsl()") que mudam em relação ao padrão do index.css
   acesso?: { emails: string[]; grupos: string[]; locadoras: string[] }; // só entram estes acionistas (e-mail de login, id_grupo ou id_locadora)
+  abasOcultas?: string[];        // telas do acionista que somem nesta marca (menu, atalhos e rota)
 };
 
 const MODO_CORRE: Marca = {
@@ -92,6 +93,7 @@ const WISER: Marca = {
     grupos: [],
     locadoras: [],
   },
+  abasOcultas: ['/documentos'],
 };
 
 const MARCAS = [MODO_CORRE, WISER];
@@ -161,5 +163,7 @@ export function grupoVisivel(grupo: string) {
   if (!grupo || (marca.id !== 'modocorre' && /modo\s*corre/i.test(grupo))) return marca.nome;
   return grupo;
 }
+
+export const abaVisivel = (url: string) => !marca.abasOcultas?.includes(url);
 
 export const classeLogo = (l: Logo) => (l.inverter ? 'brightness-0 invert' : '');

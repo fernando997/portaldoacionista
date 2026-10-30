@@ -8,6 +8,7 @@ import {
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
+import { abaVisivel } from '@/lib/marca';
 
 const currentMonthLabel = () => {
   const now = new Date();
@@ -534,7 +535,7 @@ export default function ShareholderHome() {
           <QuickLink to="/extrato"    icon={BarChart3}   label="Extrato"    sub="Histórico de transações" />
           <QuickLink to="/frota"      icon={Bike}        label="Frota"      sub="Veículos e status" />
           <QuickLink to="/mapa"       icon={Map}         label="Mapa"       sub="Localização da frota" />
-          <QuickLink to="/documentos" icon={FolderOpen}  label="Documentos" sub="Contratos e arquivos" />
+          {abaVisivel('/documentos') && <QuickLink to="/documentos" icon={FolderOpen}  label="Documentos" sub="Contratos e arquivos" />}
         </div>
       </section>
 

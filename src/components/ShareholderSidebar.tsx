@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { marca, classeLogo, grupoVisivel } from '@/lib/marca';
+import { marca, classeLogo, grupoVisivel, abaVisivel } from '@/lib/marca';
 
 const NAV_GROUPS = [
   {
@@ -47,7 +47,7 @@ const NAV_GROUPS = [
       { title: 'SAC', url: '/sac', icon: MessageCircle },
     ],
   },
-];
+].map((g) => ({ ...g, items: g.items.filter((i) => abaVisivel(i.url)) }));
 
 function NavItem({ title, url, icon: Icon, end = false, badge = 0 }: { title: string; url: string; icon: any; end?: boolean; badge?: number }) {
   const { pathname } = useLocation();
